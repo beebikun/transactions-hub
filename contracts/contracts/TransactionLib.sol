@@ -14,7 +14,6 @@ library TransactionLib {
         address payable to;
         uint amount;
         address by;
-        // bytes data;  // TODO
         TransactionStatuses status;
         // to keep voting status
         mapping(address => VoteStatuses) voterStatuses;
@@ -48,6 +47,17 @@ library TransactionLib {
         VoteStatuses status
     );
 
+    /**
+     * @notice Adds `consensus` to transaction and emits `TransactionRequest`.
+     * @dev Throws if:
+     *      - `transaction.voters` is empty array;
+     *      - `consensusPersentage` is 0;
+     *      Events:
+     *      - TransactionRequest;
+     * @param transaction Transaction
+     * @param txId transaction id
+     * @param consensusPercentage Consensus percentage from profile
+     */
     function add(
         Transaction storage transaction,
         uint txId,
@@ -78,7 +88,22 @@ library TransactionLib {
         );
     }
 
-
+    /**
+     * @notice Performs voting from `voter`
+     * @dev Throws if:
+     *      - User doesn't have `voter` permissions for transaction;
+     *      - User has already made a vote for transaction;
+     *      - User tries to vote with `UNSET` value.
+     *      - Voting for transaction is closed (transaction status is
+     *        APPROVED/REJECTED) or it is not existing transaction (status is
+     *        UNSET).
+     *      Events:
+     *      - TransactionVote;
+     *      - TransactionResponse if consesus was reached;
+     * @param transaction Transaction
+     * @param txId transaction id
+     * @param status `VoteStatuses` enum
+     */
     function vote(Transaction storage transaction, uint txId, VoteStatuses status) external {
         require(
             transaction.voterStatuses[msg.sender] == VoteStatuses.PENDING,

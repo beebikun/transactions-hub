@@ -54,13 +54,10 @@ import "./TransactionLib.sol";
  *  TBD: Calculate `consensus is impossible` situation as soon as it become
  *      clear (eg consensus requires 3/5 approve and 3 voters already rejected
  *      it), not when all votes have been made.
+ *  TBD: Use `fallback` instead of `addRequest` so it would be possible to
+ *      send custom payload with request.
  */
 contract Hub is AccountStorage, TransactionStorage {
-
-    /// @notice Refill account. Account address in hub matches user address.
-    receive() external payable {
-        receiveAmount(msg.sender);
-    }
 
     /**
      * @notice Send transaction request from `accountAddress` to `to`
@@ -120,15 +117,7 @@ contract Hub is AccountStorage, TransactionStorage {
 
     /**
      * @notice Vote for transaction with status.
-     * @dev Throws if:
-     *      - User doesn't have `voter` permissions for transaction;
-     *      - User has already made a vote for transaction;
-     *      - User tries to vote with `UNSET` value.
-     *      - Voting for transaction is closed (transaction status is
-     *        APPROVED/REJECTED).
-     *      Events:
-     *      - TransactionVote (from TransactionLib);
-     *      - TransactionResponse (from TransactionLib);
+     * @dev Throws and events: see `TransactionLib.add`;
      * @param txId Transacyion id
      * @param status `TransactionLib.VoteStatuses` enum
      */
