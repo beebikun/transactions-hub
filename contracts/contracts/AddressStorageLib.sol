@@ -13,7 +13,7 @@ library AddressStorageLib {
     }
 
     /**
-     * @notice Get storage element by index
+     * @notice Get storage element by index.
      * @param self Permissions
      * @param idx Element index
      * @return address
