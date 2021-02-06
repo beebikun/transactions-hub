@@ -46,10 +46,11 @@ contract('Hub', (accounts) => {
 
 
   it('receive', async () => {
-    const amount = 1000;
+    const amount = 300;
+    const { balance: balanceBefore } = await this.instance.account(this.ACCOUNT_SENDER);
     await this.instance.send(amount, {value: amount, from: this.ACCOUNT_SENDER});
-    const { balance } = await this.instance.account(this.ACCOUNT_SENDER);
-    assert.equal(balance, amount, 'Balance after receive');
+    const { balance: balanceAfter } = await this.instance.account(this.ACCOUNT_SENDER);
+    assert.equal(balanceBefore, balanceAfter - amount, 'Balance after receive');
   });
 
 

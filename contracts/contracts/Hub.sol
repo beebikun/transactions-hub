@@ -59,6 +59,10 @@ import "./TransactionLib.sol";
  */
 contract Hub is AccountStorage, TransactionStorage {
 
+    receive() external payable {
+        receiveAmount(tx.origin);
+    }
+
     /**
      * @notice Send transaction request from `accountAddress` to `to`
      *      according to `profileIdx` profile
@@ -90,7 +94,7 @@ contract Hub is AccountStorage, TransactionStorage {
         );
         accounts[accountAddress].balance -= amount;
 
-        address[] storage voters =
+        address[] memory voters =
             accounts[accountAddress].profiles[profileIdx].voters.keys;
         transactions[lastUid].account = accountAddress;
         transactions[lastUid].amount = amount;

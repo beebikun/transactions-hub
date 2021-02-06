@@ -42,8 +42,7 @@ contract TransactionStorage {
         returns (uint)
     {
         require(
-            transactionsByAddress[addr].length > 0 &&
-            idx <= transactionsByAddress[addr].length - 1,
+            idx + 1 <= transactionsByAddress[addr].length,
             "Transaction at index doesn't exist"
         );
         return transactionsByAddress[addr][idx];
@@ -74,8 +73,7 @@ contract TransactionStorage {
         returns (address addr, TransactionLib.VoteStatuses status)
     {
         require(
-            transactions[txId].voters.length > 0 &&
-            idx <= transactions[txId].voters.length - 1,
+            idx + 1 <= transactions[txId].voters.length,
             "Voter at index doesn't exist"
         );
         address voter = transactions[txId].voters[idx];

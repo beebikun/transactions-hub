@@ -3,6 +3,7 @@ pragma solidity >=0.6.0 <0.9.0;
 
 
 import "./AddressStorageLib.sol";
+import "./StorageLib.sol";
 
 /**
  * @title AccountStorage
@@ -32,27 +33,6 @@ contract AccountStorage {
 
     mapping(address => Account) internal accounts;
 
-    /**
-     * @dev Throws if caller is not account owner.
-     */
-    modifier requireAccountOwner(address accountAddress) {
-        require(
-            msg.sender == accounts[accountAddress].owner,
-            "Permission denied."
-        );
-        _;
-    }
-    /**
-     * @dev Throws if profile by `profileIdx` doesn't exists in
-     *      `accountAddress` address.
-     */
-    modifier requireProfileExists(address accountAddress, uint profileIdx) {
-        require(
-            profileIdx <= accounts[accountAddress].profilesSize,
-            "Profile doesn't exist"
-        );
-        _;
-    }
     /**
      * @dev Throws if caller doesn't have `requester` permissions for profile
      *      by `profileIdx` doesn't exists in `accountAddress` address.
@@ -158,8 +138,8 @@ contract AccountStorage {
      */
     function addProfile(address accountAddress)
         external
-        requireAccountOwner(accountAddress)
     {
+        requireAccountOwner(accountAddress);
         accounts[accountAddress].profilesSize += 1;
     }
 
@@ -180,9 +160,8 @@ contract AccountStorage {
         uint8 consensusPercentage
     )
         external
-        requireAccountOwner(accountAddress)
-        requireProfileExists(accountAddress, profileIdx)
     {
+        requireProfileOwner(accountAddress, profileIdx);
         accounts[accountAddress].profiles[profileIdx].title = title;
         accounts[accountAddress].profiles[profileIdx].consensusPercentage =
             consensusPercentage;
@@ -205,9 +184,8 @@ contract AccountStorage {
         Roles role
     )
         external
-        requireAccountOwner(accountAddress)
-        requireProfileExists(accountAddress, profileIdx)
     {
+        requireProfileOwner(accountAddress, profileIdx);
         if (role == Roles.VOTER) {
             AddressStorageLib.add(
                 accounts[accountAddress].profiles[profileIdx].voters,
@@ -234,9 +212,8 @@ contract AccountStorage {
      */
     function removeProfile(address accountAddress, uint profileIdx)
         external
-        requireAccountOwner(accountAddress)
-        requireProfileExists(accountAddress, profileIdx)
     {
+        requireProfileOwner(accountAddress, profileIdx);
         AddressStorageLib.clear(
             accounts[accountAddress].profiles[profileIdx].requsters
         );
@@ -265,9 +242,8 @@ contract AccountStorage {
         Roles role
     )
         external
-        requireAccountOwner(accountAddress)
-        requireProfileExists(accountAddress, profileIdx)
     {
+        requireProfileOwner(accountAddress, profileIdx);
         if (role == Roles.VOTER) {
             AddressStorageLib.remove(
                 accounts[accountAddress].profiles[profileIdx].voters,
@@ -281,5 +257,31 @@ contract AccountStorage {
             );
         }
     }
+
+    // *** Throw functions ***
+
+    /**
+     * @dev Throws if caller is not account owner.
+     */
+    function requireAccountOwner(address accountAddress) internal view {
+        require(
+            msg.sender == accounts[accountAddress].owner,
+            "Permission denied."
+        );
+    }
+
+
+    /**
+     * @dev Throws if profile by `profileIdx` doesn't exists in
+     *      `accountAddress` address.
+     */
+    function requireProfileOwner(address accountAddress, uint profileIdx) internal view {
+        requireAccountOwner(accountAddress);
+        require(
+            profileIdx <= accounts[accountAddress].profilesSize,
+            "Profile doesn't exist"
+        );
+    }
+
 
 }

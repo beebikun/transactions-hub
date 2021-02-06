@@ -23,8 +23,7 @@ library AddressStorageLib {
         returns (address)
     {
         require(
-            self.keys.length > 0 &&
-            idx <= self.keys.length - 1,
+            idx + 1 <= self.keys.length,
             "User at index doesn't exist"
         );
         return self.keys[idx];
@@ -89,11 +88,8 @@ library AddressStorageLib {
         public view
         returns (bool)
     {
-        if (self.keys.length == 0) {
-            return false;
-        }
         uint idx = self.values[user];
-        return idx <= self.keys.length - 1 && self.keys[idx] == user;
+        return idx + 1 <= self.keys.length && self.keys[idx] == user;
     }
 
 }
