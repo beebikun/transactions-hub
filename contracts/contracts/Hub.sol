@@ -14,11 +14,11 @@ import "./TransactionLib.sol";
  *     - Simple consolidated account;
  *     - Processing request by oracles, eg:
  *         - Delay transaction: transaction is approved by oracle when gas
- *             price decreases to the desirable.
+ *             price decreases to the desired level.
  *         - Safety processor: transaction is approved by oracle after it
  *             validates request destination safety (eg no suspicios activity
  *             recently, address is not envolved in any hack operations, etc)
- *     Transaction requests are created according to profiles in accont,
+ *     Transaction requests are created according to profiles in account,
  *     describing who can send request, who should vote and percentage of
  *     approvale required to transaction approval.
  * @dev Logic of transaction request:
@@ -123,7 +123,7 @@ contract Hub is AccountStorage, TransactionStorage {
      * @dev Throws if:
      *      - User doesn't have `voter` permissions for transaction;
      *      - User has already made a vote for transaction;
-     *      - User tryies to vote with `UNSET` value.
+     *      - User tries to vote with `UNSET` value.
      *      - Voting for transaction is closed (transaction status is
      *        APPROVED/REJECTED).
      *      Events:
