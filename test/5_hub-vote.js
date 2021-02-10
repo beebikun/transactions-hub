@@ -40,20 +40,20 @@ contract('Hub: vote', (accounts) => {
         amount = this.AMOUNT;
       }
       const requester = this.REQESTER;
-      const { profileIdx } = await utils.prepareProfile({
+      const { profileId } = await utils.prepareProfile({
         account, voters, requester, amount, consensusPercentage,
       });
-      await this.instance.addRequest(account, profileIdx, amount, to, {from: requester});
+      await this.instance.addRequest(profileId, amount, to, {from: requester});
       const txSizeAfter = await this.instance.txSize(this.ACCOUNT_OWNER);
       const txId = await this.instance.txAt(this.ACCOUNT_OWNER, txSizeAfter - 1);
-      return txId;
+      return { txId, profileId };
     };
   });
 
 
   it('vote: unknown status', async () => {
     const voter = accounts[3];
-    const txId = await this.prepareTx({ voters: [voter] });
+    const { txId } = await this.prepareTx({ voters: [voter] });
     await utils.assertThrow(
       () => this.instance.vote(txId, VOTE_STATUSES.UNSET, { from: voter }),
       'Revert with unknown vote status',
@@ -68,7 +68,7 @@ contract('Hub: vote', (accounts) => {
     const voter3 = accounts[5];
     const voter4 = accounts[4];
     const toBalanceBefore = await web3.eth.getBalance(this.TO);
-    const txId = await this.prepareTx({
+    const { txId, profileId } = await this.prepareTx({
       voters: [voter1, voter2, voter3, voter4],
       consensusPercentage: 66,
     });
@@ -135,10 +135,11 @@ contract('Hub: vote', (accounts) => {
     assert.include(
       log4.args,
       {
-        __length__: 5,
+        __length__: 6,
         to: this.TO,
         account: this.ACCOUNT_OWNER,
-        by: this.REQESTER
+        by: this.REQESTER,
+        profileId: profileId,
       },
       '3/4 votes: response event args',
     );
@@ -173,7 +174,7 @@ contract('Hub: vote', (accounts) => {
     const voter3 = accounts[5];
     const voter4 = accounts[6];
     const toBalanceBefore = await web3.eth.getBalance(this.TO);
-    const txId = await this.prepareTx({
+    const { txId, profileId } = await this.prepareTx({
       voters: [voter1, voter2, voter3, voter4],
       consensusPercentage: 45,
     });
@@ -206,10 +207,11 @@ contract('Hub: vote', (accounts) => {
     assert.include(
       log4.args,
       {
-        __length__: 5,
+        __length__: 6,
         to: this.TO,
         account: this.ACCOUNT_OWNER,
-        by: this.REQESTER
+        by: this.REQESTER,
+        profileId,
       },
       '3/4 votes: response event args',
     );
@@ -256,7 +258,7 @@ contract('Hub: vote', (accounts) => {
     const voter1 = accounts[3];
     const voter2 = accounts[4];
     const toBalanceBefore = await web3.eth.getBalance(this.TO);
-    const txId = await this.prepareTx({
+    const { txId, profileId } = await this.prepareTx({
       voters: [voter1, voter2],
       consensusPercentage: 100,
     });
@@ -274,10 +276,11 @@ contract('Hub: vote', (accounts) => {
     assert.include(
       log4.args,
       {
-        __length__: 5,
+        __length__: 6,
         to: this.TO,
         account: this.ACCOUNT_OWNER,
-        by: this.REQESTER
+        by: this.REQESTER,
+        profileId,
       },
       'Response event args',
     );
@@ -310,7 +313,7 @@ contract('Hub: vote', (accounts) => {
 
   it('vote: Permission denied', async () => {
     const voter = accounts[3];
-    const txId = await this.prepareTx({ voters: [voter] });
+    const {txId} = await this.prepareTx({ voters: [voter] });
     await utils.assertThrow(
       () => this.instance.vote(txId, VOTE_STATUSES.UNSET, { from: this.ACCOUNT_OWNER }),
       'Only voters can vote',
@@ -321,7 +324,7 @@ contract('Hub: vote', (accounts) => {
   it('vote: double voting protection', async () => {
     const voter1 = accounts[3];
     const voter2 = accounts[4];
-    const txId = await this.prepareTx({
+    const {txId} = await this.prepareTx({
       voters: [voter1, voter2],
       consensusPercentage: 100,
     });

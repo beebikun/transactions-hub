@@ -42,15 +42,17 @@ const prepareProfile = async ({
     balance: balanceBefore,
   } = await instance.account(account);
   const transactionsSizeBefore = await instance.txSize(account);
-  await instance.addProfile(account, {from: account});
-  await instance.editProfile(account, profileIdx, '0x00', consensusPercentage, {from: account});
-  await instance.addProfileRole(account, profileIdx, requester, ROLES.REQUESTER, {from: account});
+  await instance.addProfile({from: account});
+  const profileId = await instance.profileIdAt(account, profileIdx);
+  await instance.editProfile(profileId, '0x00', consensusPercentage, {from: account});
+  await instance.addProfileRole(profileId, requester, ROLES.REQUESTER, {from: account});
   for (let i = voters.length - 1; i >= 0; i--) {
-    await instance.addProfileRole(account, profileIdx, voters[i], ROLES.VOTER, {from: account});
+    await instance.addProfileRole(profileId, voters[i], ROLES.VOTER, {from: account});
   }
 
   return {
     profileIdx,
+    profileId,
     balanceBefore,
     transactionsSizeBefore,
   };
@@ -60,4 +62,5 @@ module.exports = {
   getGasCost,
   assertThrow,
   prepareProfile,
+  zeroBytes: '0x0000000000000000000000000000000000000000000000000000000000000000',
 };

@@ -10,6 +10,7 @@ library TransactionLib {
     enum TransactionStatuses { UNSET, PENDING, APPROVED, REJECTED }
 
     struct Transaction {
+        bytes32 profileId;
         address account;
         address payable to;
         uint amount;
@@ -19,6 +20,7 @@ library TransactionLib {
         mapping(address => VoteStatuses) voterStatuses;
         // to be able to list transaction voters
         address[] voters;
+        uint votersSize;
         // number of voters required for consensus
         uint consensus;
         uint approvalCount;
@@ -27,6 +29,7 @@ library TransactionLib {
 
     event TransactionRequest(
         uint uid,
+        bytes32 profileId,
         address account,
         address to,
         address by,
@@ -35,6 +38,7 @@ library TransactionLib {
     );
     event TransactionResponse(
         uint uid,
+        bytes32 profileId,
         address account,
         address to,
         address by,
@@ -77,9 +81,11 @@ library TransactionLib {
             transaction.consensus = transaction.voters.length;
         }
         transaction.status = TransactionStatuses.PENDING;
+        transaction.votersSize = transaction.voters.length;
 
         emit TransactionRequest(
             txId,
+            transaction.profileId,
             transaction.account,
             transaction.to,
             transaction.by,
@@ -148,6 +154,7 @@ library TransactionLib {
         if (transaction.status != TransactionStatuses.PENDING) {
             emit TransactionResponse(
                 txId,
+                transaction.profileId,
                 transaction.account,
                 transaction.to,
                 transaction.by,

@@ -4,7 +4,7 @@ import { Provider } from "react-redux";
 import { Drizzle, generateStore } from "@drizzle/store";
 // import { DrizzleContext } from "@drizzle/react-plugin";
 import { loggerMiddleware } from './middleware';
-import { userReducer } from './reducers';
+import { userReducer, profilesReducer, userPermissionsReducer, transactionsReducer } from './reducers';
 import sagas from './sagas';
 import './index.css';
 import App from './App';
@@ -17,6 +17,9 @@ const drizzleStore = generateStore({
   drizzleOptions,
   appReducers: {
     activeUser: userReducer,
+    profiles: profilesReducer,
+    userPermissions: userPermissionsReducer,
+    txRequests: transactionsReducer,
   },
   disableReduxDevTools: false,
   appSagas: sagas,

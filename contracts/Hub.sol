@@ -56,15 +56,6 @@ import "./TransactionLib.sol";
  *      it), not when all votes have been made.
  *  TBD: Use `fallback` instead of `addRequest` so it would be possible to
  *      send custom payload with request.
- *  TBD: User should be able to get all account/profiles pairs where this user
- *       has requester permissions. Maybe would be easier to give profiles
- *       unique ids accross all accounts and store them separately and provide
- *       profile id to `addRequest`.
- * KNOWN ISSUES:
- * - I have profileIdx 5, it is the last profile in my profiles list. I am
- *      removing profile with index 0, and now profileIdx is moved to index 0.
- *      When i will try to create request with saved somewhere profile index 5
- *      i will have an error!
  */
 contract Hub is AccountStorage, TransactionStorage {
 
@@ -72,14 +63,9 @@ contract Hub is AccountStorage, TransactionStorage {
         receiveAmount(tx.origin);
     }
 
-    string public myString = "Hello World";
-    function set(string memory x) public {
-        myString = x;
-    }
-
     /**
      * @notice Send transaction request from `accountAddress` to `to`
-     *      according to `profileIdx` profile
+     *      according to `profileId` profile
      * @dev Throws if:
      *      - User doesn't have `requester` permissions for profile;
      *      - Account doesn't have sufficient balance;
@@ -87,29 +73,28 @@ contract Hub is AccountStorage, TransactionStorage {
      *      - Profile `consensusPersentage` is 0;
      *      Events:
      *      - TransactionRequest (from TransactionLib);
-     * @param accountAddress Account address in Hub
-     * @param profileIdx Profile idx according to which transaction request is
+     * @param profileId Profile id according to which transaction request is
      *        made - who are voters of this transaction and what is consensus %
      * @param amount Amount to send
      * @param to Payable address of money reciever
      */
     function addRequest(
-        address accountAddress,
-        uint profileIdx,
+        bytes32 profileId,
         uint amount,
         address payable to
     )
         external
-        requireProfileRequester(accountAddress, profileIdx)
+        requireProfileRequester(profileId)
     {
+        address accountAddress = profiles[profileId].account;
         require(
             accounts[accountAddress].balance >= amount,
             "Insufficient balance."
         );
         accounts[accountAddress].balance -= amount;
 
-        address[] memory voters =
-            accounts[accountAddress].profiles[profileIdx].voters.keys;
+        address[] memory voters = profiles[profileId].voters.keys;
+        transactions[lastUid].profileId = profileId;
         transactions[lastUid].account = accountAddress;
         transactions[lastUid].amount = amount;
         transactions[lastUid].to = to;
@@ -119,7 +104,7 @@ contract Hub is AccountStorage, TransactionStorage {
         TransactionLib.add(
             transactions[lastUid],
             lastUid,
-            accounts[accountAddress].profiles[profileIdx].consensusPercentage
+            profiles[profileId].consensusPercentage
         );
 
         for (uint i = 0; i < voters.length; i++) {

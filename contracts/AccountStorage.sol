@@ -3,6 +3,7 @@ pragma solidity >=0.6.0 <0.9.0;
 
 
 import "./AddressStorageLib.sol";
+import "./ProfileStorageLib.sol";
 
 
 /**
@@ -15,6 +16,7 @@ contract AccountStorage {
     struct Profile {
         // Keep title short :)
         bytes32 title;
+        address account;
 
         // VOTER - can vote for transaction request, cannot send
         // REQUESTER - can send request, cannot vote.
@@ -27,21 +29,21 @@ contract AccountStorage {
     struct Account {
         address owner;
         uint balance;
-        uint profilesSize;
-        mapping (uint => Profile) profiles;
+        ProfileStorageLib.Profiles profiles;
     }
 
     mapping(address => Account) internal accounts;
+    mapping(bytes32 => Profile) internal profiles;
 
     /**
      * @dev Throws if caller doesn't have `requester` permissions for profile
-     *      by `profileIdx` doesn't exists in `accountAddress` address.
+     *      by `profileId` doesn't exists in `accountAddress` address.
      */
-    modifier requireProfileRequester(address accountAddress, uint profileIdx) {
+    modifier requireProfileRequester(bytes32 profileId) {
         require(
             AddressStorageLib.has(
-                accounts[accountAddress].profiles[profileIdx].requsters,
-                msg.sender
+                profiles[profileId].requsters,
+                tx.origin
             ),
             "Permission denied."
         );
@@ -58,12 +60,12 @@ contract AccountStorage {
      * @return balance
      * @return profilesSize
      */
-    function account (address accountAddress) external view
+    function account(address accountAddress) external view
         returns (uint balance, uint profilesSize)
     {
         return (
             accounts[accountAddress].balance,
-            accounts[accountAddress].profilesSize
+            accounts[accountAddress].profiles.keys.length
         );
     }
 
@@ -73,15 +75,16 @@ contract AccountStorage {
      *      profile index.
      *      To get all profile requesters/voters, use `for` loop for
      *      `requstersSize`/`votersSize` with `profileRoleAt`.
-     * @param accountAddress Address of account
-     * @param profileIdx Profile index
+     * @param profileId Profile id
+     * @return accountAddress
      * @return title
      * @return consensusPercentage
      * @return requstersSize
      * @return votersSize
      */
-    function profile(address accountAddress, uint profileIdx) external view
+    function profile(bytes32 profileId) external view
         returns (
+            address accountAddress,
             bytes32 title,
             uint8 consensusPercentage,
             uint requstersSize,
@@ -89,24 +92,34 @@ contract AccountStorage {
         )
     {
         return (
-            accounts[accountAddress].profiles[profileIdx].title,
-            accounts[accountAddress].profiles[profileIdx].consensusPercentage,
-            accounts[accountAddress].profiles[profileIdx].requsters.keys.length,
-            accounts[accountAddress].profiles[profileIdx].voters.keys.length
+            profiles[profileId].account,
+            profiles[profileId].title,
+            profiles[profileId].consensusPercentage,
+            profiles[profileId].requsters.keys.length,
+            profiles[profileId].voters.keys.length
         );
+    }
+
+    function profileIdAt(address accountAddress, uint profileIdx)
+        external view
+        returns (bytes32)
+    {
+        require(
+            profileIdx + 1 <= accounts[accountAddress].profiles.keys.length,
+            "Profile doesn't exist."
+        );
+        return accounts[accountAddress].profiles.keys[profileIdx];
     }
 
     /**
      * @notice Get user address in roles array by index.
      * @dev Use `requstersSize`/`votersSize` from `profile` response to get
      *      max possible index.
-     * @param accountAddress Address of account
-     * @param profileIdx Profile index
+     * @param profileId Profile id
      * @return address
      */
     function profileRoleAt(
-        address accountAddress,
-        uint profileIdx,
+        bytes32 profileId,
         uint userIdx,
         Roles role
     )
@@ -115,13 +128,13 @@ contract AccountStorage {
     {
         if (role == Roles.VOTER) {
             return AddressStorageLib.at(
-                accounts[accountAddress].profiles[profileIdx].voters,
+                profiles[profileId].voters,
                 userIdx
             );
         }
         else {
             return AddressStorageLib.at(
-                accounts[accountAddress].profiles[profileIdx].requsters,
+                profiles[profileId].requsters,
                 userIdx
             );
         }
@@ -132,15 +145,15 @@ contract AccountStorage {
     /**
      * @notice Add a new empty profile to account.
      * @dev Use `editProfile` to set profile details.
-     *       Throws if:
-     *       - Caller isn't account owner;
-     * @param accountAddress Address of account
      */
-    function addProfile(address accountAddress)
-        external
+    function addProfile() external
     {
-        requireAccountOwner(accountAddress);
-        accounts[accountAddress].profilesSize += 1;
+        address accountAddress = tx.origin;
+        bytes32 profileId = ProfileStorageLib.add(
+            accounts[accountAddress].profiles,
+            accountAddress
+        );
+        profiles[profileId].account = accountAddress;
     }
 
     /**
@@ -148,23 +161,20 @@ contract AccountStorage {
      * @dev Throws if:
      *      - Caller isn't account owner;
      *      - Profile at index doesn't exist;
-     * @param accountAddress Address of account
-     * @param profileIdx Profile index
+     * @param profileId Profile id
      * @param title Title in bytes32
      * @param consensusPercentage Consensus percentage 1-100
      */
     function editProfile(
-        address accountAddress,
-        uint profileIdx,
+        bytes32 profileId,
         bytes32 title,
         uint8 consensusPercentage
     )
         external
     {
-        requireProfileOwner(accountAddress, profileIdx);
-        accounts[accountAddress].profiles[profileIdx].title = title;
-        accounts[accountAddress].profiles[profileIdx].consensusPercentage =
-            consensusPercentage;
+        requireProfileOwner(profileId);
+        profiles[profileId].title = title;
+        profiles[profileId].consensusPercentage = consensusPercentage;
     }
 
     /**
@@ -172,31 +182,23 @@ contract AccountStorage {
      * @dev Throws if:
      *      - Caller isn't account owner;
      *      - Profile at index doesn't exist;
-     * @param accountAddress Address of account
-     * @param profileIdx Profile index
+     * @param profileId Profile id
      * @param user User address
      * @param role `Roles` enum
      */
     function addProfileRole(
-        address accountAddress,
-        uint profileIdx,
+        bytes32 profileId,
         address user,
         Roles role
     )
         external
     {
-        requireProfileOwner(accountAddress, profileIdx);
+        requireProfileOwner(profileId);
         if (role == Roles.VOTER) {
-            AddressStorageLib.add(
-                accounts[accountAddress].profiles[profileIdx].voters,
-                user
-            );
+            AddressStorageLib.add(profiles[profileId].voters, user);
         }
         else {
-            AddressStorageLib.add(
-                accounts[accountAddress].profiles[profileIdx].requsters,
-                user
-            );
+            AddressStorageLib.add(profiles[profileId].requsters, user);
         }
     }
 
@@ -207,22 +209,19 @@ contract AccountStorage {
      * @dev Throws if:
      *      - Caller isn't account owner;
      *      - Profile at index doesn't exist;
-     * @param accountAddress Address of account
-     * @param profileIdx Profile index
+     * @param profileId Profile id
      */
-    function removeProfile(address accountAddress, uint profileIdx)
+    function removeProfile(bytes32 profileId)
         external
     {
-        requireProfileOwner(accountAddress, profileIdx);
-        AddressStorageLib.clear(
-            accounts[accountAddress].profiles[profileIdx].requsters
-        );
-        AddressStorageLib.clear(
-            accounts[accountAddress].profiles[profileIdx].voters
-        );
-        accounts[accountAddress].profiles[profileIdx].consensusPercentage = 0;
-        accounts[accountAddress].profiles[profileIdx].title = '';
-        accounts[accountAddress].profilesSize -= 1;
+        requireProfileOwner(profileId);
+        address accountAddress = profiles[profileId].account;
+        AddressStorageLib.clear(profiles[profileId].requsters);
+        AddressStorageLib.clear(profiles[profileId].voters);
+        profiles[profileId].consensusPercentage = 0;
+        profiles[profileId].title = '';
+        profiles[profileId].account = address(0);
+        ProfileStorageLib.remove(accounts[accountAddress].profiles, profileId);
     }
 
     /**
@@ -230,56 +229,36 @@ contract AccountStorage {
      * @dev Throws if:
      *      - Caller isn't account owner;
      *      - Profile at index doesn't exist;
-     * @param accountAddress Address of account
-     * @param profileIdx Profile index
+     * @param profileId Profile id
      * @param user User address
      * @param role `Roles` enum
      */
     function removeProfileRole(
-        address accountAddress,
-        uint profileIdx,
+        bytes32 profileId,
         address user,
         Roles role
     )
         external
     {
-        requireProfileOwner(accountAddress, profileIdx);
+        requireProfileOwner(profileId);
         if (role == Roles.VOTER) {
-            AddressStorageLib.remove(
-                accounts[accountAddress].profiles[profileIdx].voters,
-                user
-            );
+            AddressStorageLib.remove(profiles[profileId].voters, user);
         }
         else {
-            AddressStorageLib.remove(
-                accounts[accountAddress].profiles[profileIdx].requsters,
-                user
-            );
+            AddressStorageLib.remove(profiles[profileId].requsters, user);
         }
     }
 
     // *** Throw functions ***
 
     /**
-     * @dev Throws if caller is not account owner.
-     */
-    function requireAccountOwner(address accountAddress) internal view {
-        require(
-            msg.sender == accounts[accountAddress].owner,
-            "Permission denied."
-        );
-    }
-
-
-    /**
-     * @dev Throws if profile by `profileIdx` doesn't exists in
+     * @dev Throws if profile by `profileId` doesn't exists in
      *      `accountAddress` address.
      */
-    function requireProfileOwner(address accountAddress, uint profileIdx) internal view {
-        requireAccountOwner(accountAddress);
+    function requireProfileOwner(bytes32 profileId) internal view {
         require(
-            profileIdx <= accounts[accountAddress].profilesSize,
-            "Profile doesn't exist"
+            tx.origin == profiles[profileId].account,
+            "Permission denied."
         );
     }
 

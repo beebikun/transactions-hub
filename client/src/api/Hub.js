@@ -4,6 +4,7 @@ import * as ACTIONS from '../actions';
 class HubApi {
   constructor(drizzle) {
     this.SIGNS_MAP = {};
+    this._activeUser = null;
     this._contractPromise = new Promise((resolve, reject) => {
       this._contractPromiseResolve = resolve;
       this._contractPromiseReject = reject;
@@ -26,7 +27,6 @@ class HubApi {
     const methods = [
       'addProfile',
       'editProfile',
-      // 'removeProfile',
       'addProfileRole',
       'removeProfileRole',
     ];
@@ -43,17 +43,9 @@ class HubApi {
               }
               return { ...bucket, [names[idx]]: value };
             }, {});
-          // POST-MVP
-          // if (name === 'removeProfile') {
-          //   return ACTIONS.profileRemoved({
-          //     accountAddress: result.accountAddress,
-          //     profileIdx: result.profileIdx,
-          //   });
-          // }
           if (['addProfileRole', 'removeProfileRole'].includes(name)) {
-            return ACTIONS.requestProfile({
-              accountAddress: result.accountAddress,
-              profileIdx: result.profileIdx,
+            return ACTIONS.fetchProfile({
+              profileId: result.profileId,
             });
           }
           return ACTIONS.profileReceived({ result });
@@ -62,7 +54,11 @@ class HubApi {
     });
   }
 
-  async fetchAccount(accountAddress) {
+
+  // Atm we do not need to fetch any user except of active one. But if we will - do not use `cacheCall`
+  // for the rest of users.
+  async fetchActiveUser(accountAddress) {
+    this._activeUser = accountAddress;
     // DEBUG
     window.address = accountAddress;
     const contract = await this._contractPromise;
@@ -70,73 +66,109 @@ class HubApi {
     return hash;
   }
 
-  // GET
-  async fetchProfile({ accountAddress, profileIdx }) {
-    const contract = await this._contractPromise;
-    const result = await contract.methods.profile(accountAddress, profileIdx).call();
-    return { ...result, accountAddress, profileIdx };
-  }
-
-  async fetchUserPermission({ accountAddress, profileIdx, role, idx}) {
-    const contract = await this._contractPromise;
-    const userAddress = await contract.methods.profileRoleAt(accountAddress, profileIdx, idx, role).call();
-    return { address: userAddress, accountAddress, profileIdx, role, idx };
-  }
-
   async refillAccount({ accountAddress, value }) {
     const contract = await this._contractPromise;
-    contract.methods.receiveAmount.cacheSend(accountAddress, {from: accountAddress, value });
+    contract.methods.receiveAmount.cacheSend(accountAddress, {from: this._activeUser, value });
+  }
+
+  // GET
+  async fetchProfileIds({ accountAddress, profilesSize }) {
+    const contract = await this._contractPromise;
+    const result = [];
+    for (var idx = 0; idx < profilesSize; idx++) {
+      const profileId = await contract.methods.profileIdAt(accountAddress, idx).call();
+      result.push(profileId);
+    }
+    return result;
+  }
+
+  async fetchProfile({ profileId }) {
+    const contract = await this._contractPromise;
+    const result = await contract.methods.profile(profileId).call();
+    return { ...result, profileId };
+  }
+
+  async fetchUserPermission({ profileId, role, idx}) {
+    const contract = await this._contractPromise;
+    const userAddress = await contract.methods.profileRoleAt(profileId, idx, role).call();
+    return { address: userAddress, profileId, role, idx };
+  }
+
+  async fetchTxIds({ accountAddress, n = 100 }) {
+    const contract = await this._contractPromise;
+    let size = await contract.methods.txSize(accountAddress).call();
+    size = parseInt(size || 0, 10);
+    n = Math.min(size, n);
+    const result = new Set();
+    for (var idx = size - n; idx < size; idx++) {
+      const txId = await contract.methods.txAt(accountAddress, idx).call();
+      result.add(txId);
+    }
+    return Array.from(result);
+  }
+
+  async fetchTransaction({ txId }) {
+    const contract = await this._contractPromise;
+    const result = await contract.methods.transactions(txId).call();
+    result.voters = {};
+    result.txId = txId;
+    for (var idx = 0; idx < result.votersSize; idx++) {
+      const voter = await contract.methods.txVoterAt(txId, idx).call();
+      result.voters[voter.addr] = voter;
+    }
+    return result;
   }
 
   // ADD
-  async addProfile({ accountAddress }) {
+  async addProfile() {
     const contract = await this._contractPromise;
-    contract.methods.addProfile(accountAddress).send({from: accountAddress});
+    contract.methods.addProfile().send({from: this._activeUser});
   }
 
-  async addUserPermission({ accountAddress, profileIdx, user, role }) {
+  async addUserPermission({ profileId, user, role }) {
     const contract = await this._contractPromise;
-    contract.methods.addProfileRole(
-      accountAddress, profileIdx, user, role,
-    ).send({from: accountAddress});
+    contract.methods.addProfileRole(profileId, user, role).send({from: this._activeUser});
   }
 
-  async addRequest({ accountAddress, profileIdx, amount, by }) {
+  async addRequest({ profileId, amount, to }) {
     const contract = await this._contractPromise;
-    contract.methods.addRequest(accountAddress, profileIdx, amount).send({from: by});
+    contract.methods.addRequest(profileId, amount, to).send({from: this._activeUser});
   }
 
   // EDIT
-  async editProfile({ accountAddress, profileIdx, title, consensusPercentage }) {
+  async editProfile({ profileId, title, consensusPercentage }) {
     const contract = await this._contractPromise;
     contract.methods.editProfile(
-      accountAddress, profileIdx,
+      profileId,
       contract.web3.utils.toHex(title), consensusPercentage,
-    ).send({from: accountAddress});
+    ).send({from: this._activeUser});
   }
 
   // DELETE
-  async removeProfile({ accountAddress, profileIdx }) {
+  async removeProfile({ profileId }) {
     const contract = await this._contractPromise;
-    contract.methods.removeProfile(accountAddress, profileIdx).send({from: accountAddress});
+    contract.methods.removeProfile(profileId).send({from: this._activeUser});
   }
 
-  async removeUserPermission({ accountAddress, profileIdx, user, role }) {
+  async removeUserPermission({ profileId, user, role }) {
     const contract = await this._contractPromise;
     contract.methods.removeProfileRole(
-      accountAddress, profileIdx, user, role,
-    ).send({from: accountAddress});
+      profileId, user, role,
+    ).send({from: this._activeUser});
   }
 
 }
 
 let HubApiPrivate = null;
 const exposedMethods = [
-  'fetchAccount', 'fetchProfile', 'fetchUserPermission',
+  'fetchActiveUser',
+  'fetchProfileIds', 'fetchProfile',
+  'fetchUserPermission',
   'refillAccount',
   'addRequest',
   'addProfile', 'editProfile', 'removeProfile',
   'addUserPermission', 'removeUserPermission',
+  'fetchTxIds', 'fetchTransaction',
 ];
 
 const HubApiSingleton = {

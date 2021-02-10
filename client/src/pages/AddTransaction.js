@@ -1,37 +1,53 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { connect } from "react-redux";
 import {
   useHistory,
-  useLocation
 } from "react-router-dom";
 import * as ACTIONS from '../actions';
 import Input from '../components/Input';
 import Button from '../components/Button';
+import RecentTransaction from '../components/RecentTransaction';
+
 
 const mapStateToProps = (state) => {
-  const address = state.activeUser.address;
   return {
-    activeUser: address,
+    activeUserAddress: state.activeUser.address,
+    transactionIds: state.activeUser.transactionIds,
   };
 };
 
 function mapDispatchToProps(dispatch, state) {
   return {
-    onSend: (by, data) => dispatch(ACTIONS.addRequest({ by, ...data }))
+    fetchLastTransactions: (accountAddress) => dispatch(ACTIONS.fetchLastTxIds({ accountAddress, n: 10 })),
+    onSend: data => dispatch(ACTIONS.addTransactionRequest(data)),
   };
 };
 
 
-function AddTransaction({ activeUser, onSend }) {
+function AddTransaction({ activeUserAddress, transactionIds, fetchLastTransactions, onSend }) {
+  useEffect(() => {
+    if (activeUserAddress) {
+      fetchLastTransactions(activeUserAddress);
+    }
+  }, [activeUserAddress, fetchLastTransactions]);
   const history = useHistory();
-  const [accountAddress, setAccountAddress] = useState('');
-  const [profileIdx, setProfileIdx] = useState();
+  const [profileId, setProfileId] = useState();
   const [amount, setAmount] = useState(0);
+  const [to, setTo] = useState();
 
   const handleSubmit = () => {
-    onSend(activeUser, { amount, accountAddress, profileIdx });
+    onSend({ amount, profileId, to });
     history.push('/');
   };
+  const useTx = ({ profileId, to }) => {
+    setProfileId(profileId);
+    setTo(to);
+  };
+
+  const recentTxTitle = transactionIds.length ? 'Recent Related Transactions' : 'No Recent Transactions';
+  const recentTxs = transactionIds.map(txId =>
+    <RecentTransaction key={txId} txId={txId} onClick={useTx} />
+  )
 
   return (
     <div className="pt-3">
@@ -47,25 +63,11 @@ function AddTransaction({ activeUser, onSend }) {
         <div className="mr-5 mb-5">
           <label
             className="block mb-2 font-semibold text-sm"
-            htmlFor="requestAccount">
-            ACCOUNT</label>
-          <Input
-            value={accountAddress}
-            onChange={setAccountAddress}
-            name="requestAccount"
-            placeholder="0x0000000000000000000000000000000000000000"
-          />
-        </div>
-
-        <div className="mr-5 mb-5">
-          <label
-            className="block mb-2 font-semibold text-sm"
             htmlFor="requestProfile">
-            PROFILE INDEX</label>
+            PROFILE ID</label>
           <Input
-            value={profileIdx}
-            onChange={setProfileIdx}
-            type="number"
+            value={profileId}
+            onChange={setProfileId}
             name="requestProfile"
           />
         </div>
@@ -83,14 +85,29 @@ function AddTransaction({ activeUser, onSend }) {
           />
         </div>
 
+        <div className="mr-5 mb-5">
+          <label
+            className="block mb-2 font-semibold text-sm"
+            htmlFor="requestTo">
+            TO</label>
+          <Input
+            value={to}
+            onChange={setTo}
+            name="requestTo"
+          />
+        </div>
+
         <Button
-          disabled={!amount || !accountAddress || isNaN(parseInt(profileIdx, 10))}
+          disabled={!amount || !profileId || !to}
           onClick={handleSubmit}
         >
           SEND
         </Button>
 
       </div>
+
+      <h3 className="text-lg mb-5 mt-5 px-1 text-gray-900">{recentTxTitle}</h3>
+      {recentTxs}
     </div>
   );
 }

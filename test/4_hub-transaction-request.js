@@ -39,7 +39,7 @@ contract('Hub: addRequest', (accounts) => {
     const txId = lastUidBefore.toNumber();
     const consensusPercentage = 30;
     const {
-      profileIdx,
+      profileId,
       balanceBefore
     } = await utils.prepareProfile({
       account,
@@ -50,7 +50,7 @@ contract('Hub: addRequest', (accounts) => {
     });
 
     const result = await this.instance.addRequest(
-      account, profileIdx, amount, to,
+      profileId, amount, to,
       {from: requester}
     );
 
@@ -61,10 +61,11 @@ contract('Hub: addRequest', (accounts) => {
     assert.include(
       log.args,
       {
-        __length__: 6,
+        __length__: 7,
         by: requester,
         account: account,
         to: to,
+        profileId: profileId,
       },
       'Event args',
     );
@@ -81,14 +82,19 @@ contract('Hub: addRequest', (accounts) => {
     assert.equal(lastUidAfter.toNumber(), lastUidBefore.toNumber() + 1, 'Increase lastUid');
 
     const tx = await this.instance.transactions(txId);
-    const assertTx = (tx_, msg) => {
+    const assertTx = async (tx_, msg) => {
       assert.equal(tx_.account, account, `${msg}: Tx account`);
       assert.equal(tx_.amount, amount, `${msg}: Tx amount`);
       assert.equal(tx_.to, to, `${msg}: Tx to`);
       assert.equal(tx_.by, requester, `${msg}: Tx to`);
       assert.equal(tx_.consensus.toNumber(), 1, `${msg}: Tx consensus`);
+      assert.equal(tx_.votersSize.toNumber(), 3, `${msg}: Tx votersSize`);
+      assert.equal(tx_.profileId, profileId, 'Tx profileId');
+      const txVoter = await this.instance.txVoterAt(txId, 0);
+      assert.equal(txVoter.addr, voter3, 'Voter account matches');
+      assert.equal(txVoter.status, 1, 'Voter status matches');
     };
-    assertTx(tx, 'Tx from "transactions"');
+    await assertTx(tx, 'Tx from "transactions"');
 
     // Each of participants should have transaction to be added to the transactions list
     for (let i = users.length - 1; i >= 0; i--) {
@@ -102,14 +108,9 @@ contract('Hub: addRequest', (accounts) => {
       const idx = user.txSizeAfter - 1;
       const id = await this.instance.txAt(user.addr, idx);
       const userTx = await this.instance.transactions(id);
-      assertTx(userTx, user.name);
+      await assertTx(userTx, user.name);
     }
 
-    const txVotersSize = await this.instance.txVotersSize(txId);
-    assert.equal(txVotersSize.toNumber(), 3, 'Tx has 3 voters');
-    const txVoter = await this.instance.txVoterAt(txId, 0);
-    assert.equal(txVoter.addr, voter3, 'Voter account matches');
-    assert.equal(txVoter.status, 1, 'Voter status matches');
   });
 
   it('no voters in profile: revert', async () => {
@@ -119,7 +120,7 @@ contract('Hub: addRequest', (accounts) => {
     const amount = 200;
 
     const {
-      profileIdx,
+      profileId,
     } = await utils.prepareProfile({
       account,
       requester,
@@ -128,7 +129,7 @@ contract('Hub: addRequest', (accounts) => {
     });
 
     await utils.assertThrow(
-      () => this.instance.addRequest(account, profileIdx, amount, to, { from: requester }),
+      () => this.instance.addRequest(profileId, amount, to, { from: requester }),
       'Don\'t allow transactions w/o voters',
       'Transaction request without voters is impossible'
     );
@@ -136,7 +137,7 @@ contract('Hub: addRequest', (accounts) => {
 
   it('Don\'t allow transaction request for profile with zero consensusPercentage', async () => {
       const {
-        profileIdx,
+        profileId,
       } = await utils.prepareProfile({
         account: this.ACCOUNT_OWNER,
         requester: this.ACCOUNT_OWNER,
@@ -146,7 +147,7 @@ contract('Hub: addRequest', (accounts) => {
       });
       await utils.assertThrow(
         () => this.instance.addRequest(
-          this.ACCOUNT_OWNER, profileIdx, 1, this.ACCOUNT_OWNER,
+          profileId, 1, this.ACCOUNT_OWNER,
           {from: this.ACCOUNT_OWNER}
          ),
         'Tx request for profile with zero consensusPercentage',
@@ -166,7 +167,7 @@ contract('Hub: addRequest', (accounts) => {
       const lastUidBefore = await this.instance.lastUid();
       const txId = lastUidBefore.toNumber();
       const {
-        profileIdx,
+        profileId,
       } = await utils.prepareProfile({
         account: this.ACCOUNT_OWNER,
         requester: this.ACCOUNT_OWNER,
@@ -175,10 +176,7 @@ contract('Hub: addRequest', (accounts) => {
         voters,
       });
 
-      await this.instance.addRequest(
-        this.ACCOUNT_OWNER, profileIdx, 1, this.ACCOUNT_OWNER,
-        {from: this.ACCOUNT_OWNER}
-      );
+      await this.instance.addRequest(profileId, 1, this.ACCOUNT_OWNER, {from: this.ACCOUNT_OWNER});
 
       const tx = await this.instance.transactions(txId);
       assert.equal(tx.consensus.toNumber(), expected);
@@ -189,48 +187,21 @@ contract('Hub: addRequest', (accounts) => {
     const account = accounts[2];
     await this.instance.receiveAmount(account, {value: 1});
     const { balance } = await this.instance.account(account);
-    const { profileIdx } = await utils.prepareProfile({ account });
+    const { profileId } = await utils.prepareProfile({ account });
     await utils.assertThrow(
-      () => this.instance.addRequest(account, profileIdx, balance * 10, account, {from: account}),
+      () => this.instance.addRequest(profileId, balance * 10, account, {from: account}),
       'Revert "addRequest" when user doesn\'t have enough money',
       'Insufficient balance'
     );
   });
 
 
-  it('No voters', async () => {
-    const {
-        profileIdx,
-    } = await utils.prepareProfile({
-      account: this.ACCOUNT_OWNER,
-      requester: this.ACCOUNT_OWNER,
-      amount: 1,
-      voters: [],
-    });
 
-    await utils.assertThrow(
-      () => this.instance.addRequest(
-        this.ACCOUNT_OWNER, profileIdx, 1, this.ACCOUNT_OWNER,
-        {from: this.ACCOUNT_OWNER}
-      ),
-      'Revert when profile has no voters',
-    );
-  });
-
-
-  it('Permission denied if account doesn\'t exist', async () => {
-    const account = accounts[9];
-    await utils.assertThrow(
-      () => this.instance.addRequest(account, 0, 1, account, {from: account}),
-      'Revert "removeProfileVoter" when profile doesn\'t exist',
-      'Permission denied.'
-    );
-  });
   it('Permission denied if profile doesn\'t exist', async () => {
     const account = accounts[9];
     await this.instance.receiveAmount(account, {value: 1});
     await utils.assertThrow(
-      () => this.instance.addRequest(account, 0, 1, account, {from: account}),
+      () => this.instance.addRequest(utils.zeroBytes, 1, account, {from: account}),
       'Revert "removeProfileVoter" when profile doesn\'t exist',
       'Permission denied.'
     );
@@ -241,11 +212,12 @@ contract('Hub: addRequest', (accounts) => {
     const {
       profilesSize: profileIdx,
     } = await this.instance.account(account);
-    await this.instance.addProfile(account, {from: account});
+    await this.instance.addProfile({from: account});
+    const profileId = await this.instance.profileIdAt(account, profileIdx);
 
     await utils.assertThrow(
-      () => this.instance.addRequest(account, profileIdx, 1, account, {from: account}),
-      'Revert "removeProfileVoter" when profile doesn\'t exist',
+      () => this.instance.addRequest(profileId, 1, account, {from: account}),
+      'Revert "removeProfileVoter" if user doesn\'t have requester permissions',
       'Permission denied.'
     );
   });
@@ -259,11 +231,11 @@ contract('Hub: addRequest', (accounts) => {
       'Transaction at index doesn\'t exist'
     );
     const {
-      profileIdx,
+      profileId,
       transactionsSizeBefore
     } = await utils.prepareProfile({ account, instance });
     await instance.addRequest(
-      account, profileIdx, 1, account,
+      profileId, 1, account,
       {from: account}
     );
     await utils.assertThrow(
@@ -282,11 +254,11 @@ contract('Hub: addRequest', (accounts) => {
       'Voter at index doesn\'t exist'
     );
     const {
-      profileIdx,
+      profileId,
       transactionsSizeBefore: txId
     } = await utils.prepareProfile({ account, instance, voters: [account] });
     await instance.addRequest(
-      account, profileIdx, 1, account,
+      profileId, 1, account,
       {from: account}
     );
     await utils.assertThrow(

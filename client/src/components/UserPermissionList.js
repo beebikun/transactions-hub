@@ -6,12 +6,12 @@ import Button from './Button';
 import Input from './Input';
 
 
-const UserPermissionListFactory = (accountAddress, profileIdx) => {
+const UserPermissionListFactory = profileId => {
 
   function mapDispatchToProps(dispatch, { role }) {
     return {
       onAddUserPermission: user => dispatch(
-        ACTIONS.addUserPermission({ accountAddress, profileIdx, role, user })
+        ACTIONS.addUserPermission({ profileId, role, user })
       ),
     };
   }
@@ -26,8 +26,7 @@ const UserPermissionListFactory = (accountAddress, profileIdx) => {
             className={idx ? 'mt-2' : ''}
             key={idx}
             idx={idx}
-            accountAddress={accountAddress}
-            profileIdx={profileIdx}
+            profileId={profileId}
             role={role}
           />);
       setUserPermissions(users);

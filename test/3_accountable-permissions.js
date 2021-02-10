@@ -27,54 +27,49 @@ contract('Accountable: Permissions', (accounts) => {
     const {
       profilesSize: profileIdx,
     } = await this.instance.account(this.ACCOUNT_OWNER);
-    await this.instance.addProfile(this.ACCOUNT_OWNER, {from: this.ACCOUNT_OWNER});
+    await this.instance.addProfile({from: this.ACCOUNT_OWNER});
+    const profileId = await this.instance.profileIdAt(this.ACCOUNT_OWNER, profileIdx);
 
     const voter = accounts[9];
     const requester1 = accounts[8];
     const requester2 = accounts[7];
 
     await this.instance.addProfileRole(
-      this.ACCOUNT_OWNER,
-      profileIdx,
+      profileId,
       voter,
       ROLES.VOTER,
       {from: this.ACCOUNT_OWNER}
     );
     await this.instance.addProfileRole(
-      this.ACCOUNT_OWNER,
-      profileIdx,
+      profileId,
       requester1,
       ROLES.REQUESTER,
       {from: this.ACCOUNT_OWNER}
     );
     await this.instance.addProfileRole(
-      this.ACCOUNT_OWNER,
-      profileIdx,
+      profileId,
       requester2,
       ROLES.REQUESTER,
       {from: this.ACCOUNT_OWNER}
     );
 
-    const profile = await this.instance.profile(this.ACCOUNT_OWNER, profileIdx);
+    const profile = await this.instance.profile(profileId);
     assert.equal(profile.requstersSize, 2, 'Profile requstersSize');
     assert.equal(profile.votersSize, 1, 'Profile votersSize');
 
     const voterResponse = await this.instance.profileRoleAt(
-      this.ACCOUNT_OWNER,
-      profileIdx,
+      profileId,
       0,
       ROLES.VOTER,
     );
     assert.equal(voterResponse, voter, 'Anyone can get receiver user at idx');
     const requesterResponseAfterSecond1 = await this.instance.profileRoleAt(
-      this.ACCOUNT_OWNER,
-      profileIdx,
+      profileId,
       0,
       ROLES.REQUESTER,
     );
     const requesterResponseAfterSecond2 = await this.instance.profileRoleAt(
-      this.ACCOUNT_OWNER,
-      profileIdx,
+      profileId,
       1,
       ROLES.REQUESTER,
     );
@@ -82,40 +77,36 @@ contract('Accountable: Permissions', (accounts) => {
     assert.equal(requesterResponseAfterSecond2, requester2, 'Set second user as requester #2');
 
     await this.instance.removeProfileRole(
-      this.ACCOUNT_OWNER,
-      profileIdx,
+      profileId,
       voter,
       ROLES.VOTER,
       {from: this.ACCOUNT_OWNER}
     );
     const {
       votersSize: votersSizeAfter,
-    } = await this.instance.profile(this.ACCOUNT_OWNER, profileIdx);
+    } = await this.instance.profile(profileId);
     assert.equal(votersSizeAfter.toNumber(), 0, 'Return size of voters to the initial state');
     await this.instance.removeProfileRole(
-      this.ACCOUNT_OWNER,
-      profileIdx,
+      profileId,
       requester1,
       ROLES.REQUESTER,
       {from: this.ACCOUNT_OWNER}
     );
     const {
       requstersSize: requstersSizeAfter,
-    } = await this.instance.profile(this.ACCOUNT_OWNER, profileIdx);
+    } = await this.instance.profile(profileId);
     assert.equal(requstersSizeAfter.toNumber(), 1, 'Return size of requesters to the initial state');
 
     // not requester at idx 0 must be requester2
     const requesterResponse2 = await this.instance.profileRoleAt(
-      this.ACCOUNT_OWNER,
-      profileIdx,
+      profileId,
       0,
       ROLES.REQUESTER,
      );
     assert.equal(requesterResponse2, requester2, 'Move users in array during delete');
     await utils.assertThrow(
       () => this.instance.profileRoleAt(
-        this.ACCOUNT_OWNER,
-        profileIdx,
+        profileId,
         1,
         ROLES.REQUESTER,
        ),
@@ -124,8 +115,7 @@ contract('Accountable: Permissions', (accounts) => {
     );
     await utils.assertThrow(
       () => this.instance.profileRoleAt(
-        this.ACCOUNT_OWNER,
-        profileIdx,
+        profileId,
         0,
         ROLES.VOTER,
        ),
@@ -133,26 +123,34 @@ contract('Accountable: Permissions', (accounts) => {
       'User at index doesn\'t exist'
     );
 
-    // Not remove profile and create a new profile at the same idx. The new profile should not
-    // have any permissions set
-    await this.instance.editProfile(
-      this.ACCOUNT_OWNER,
-      profileIdx, '0x42', 20, {from: this.ACCOUNT_OWNER});
-    await this.instance.removeProfile(
-      this.ACCOUNT_OWNER,
-      profileIdx,
+  });
+
+  it('Remove profile: clean permissions', async () => {
+    const instance = await Hub.new();
+    await instance.addProfile({from: this.ACCOUNT_OWNER});
+    const profileId = await instance.profileIdAt(this.ACCOUNT_OWNER, 0);
+    const profile = await instance.profile(profileId);
+    assert.equal(profile.accountAddress, this.ACCOUNT_OWNER);
+    await instance.addProfileRole(
+      profileId,
+      accounts[2],
+      ROLES.REQUESTER,
+      {from: this.ACCOUNT_OWNER}
+    );
+    await instance.addProfileRole(
+      profileId,
+      accounts[3],
+      ROLES.REQUESTER,
+      {from: this.ACCOUNT_OWNER}
+    );
+
+    await instance.removeProfile(
+      profileId,
       {from: this.ACCOUNT_OWNER},
     );
-    await this.instance.addProfile(
-      this.ACCOUNT_OWNER,
-      {from: this.ACCOUNT_OWNER},
-    );
-    const newProfile = await await this.instance.profile(this.ACCOUNT_OWNER, profileIdx);
-    const zeroBytes = '0x0000000000000000000000000000000000000000000000000000000000000000';
-    assert.equal(newProfile.title, zeroBytes, 'New profile title');
-    assert.equal(newProfile.consensusPercentage, 0, 'New profile consensusPercentage');
-    assert.equal(newProfile.requstersSize, 0, 'New profile requstersSize');
-    assert.equal(newProfile.votersSize, 0, 'New profile votersSize');
+    const removedProfile = await instance.profile(profileId);
+    assert.equal(removedProfile.requstersSize, 0, 'Clean profile requstersSize after removing');
+    assert.equal(removedProfile.votersSize, 0, 'Clean profile votersSize after removing');
   });
 
   [
@@ -165,23 +163,25 @@ contract('Accountable: Permissions', (accounts) => {
       const idx = 1000;
       await utils.assertThrow(
         () => this.instance.addProfileRole(
-          this.ACCOUNT_OWNER,
-          idx,
+          utils.zeroBytes,
           accounts[9],
           role,
           {from: this.ACCOUNT_OWNER}
          ),
         'Revert "addProfileRole" when profile doesn\'t exist',
-        'Profile doesn\'t exist'
+        'Permission denied.'
       );
     });
 
     it(`addProfileRole ${roleName}: permissions`, async () => {
-      const idx = 1000;
+      const {
+        profilesSize: profileIdx,
+      } = await this.instance.account(this.ACCOUNT_OWNER);
+      await this.instance.addProfile({from: this.ACCOUNT_OWNER});
+      const profileId = await this.instance.profileIdAt(this.ACCOUNT_OWNER, profileIdx);
       await utils.assertThrow(
         () => this.instance.addProfileRole(
-          this.ACCOUNT_OWNER,
-          idx,
+          profileId,
           accounts[9],
           role
          ),
@@ -194,26 +194,30 @@ contract('Accountable: Permissions', (accounts) => {
       const {
         profilesSize: profileIdx,
       } = await this.instance.account(this.ACCOUNT_OWNER);
-      const profileBefore = await this.instance.profile(this.ACCOUNT_OWNER, profileIdx);
+      await this.instance.addProfile({from: this.ACCOUNT_OWNER});
+      const profileId = await this.instance.profileIdAt(this.ACCOUNT_OWNER, profileIdx);
+      const profileBefore = await this.instance.profile(profileId);
       assert.equal(profileBefore[roleProperty].toNumber(), 0, '0 users before');
       // do not throw - basically, do nothing
       await this.instance.removeProfileRole(
-        this.ACCOUNT_OWNER,
-        profileIdx,
+        profileId,
         accounts[9],
         role,
         {from: this.ACCOUNT_OWNER}
       );
-      const profileAfter = await this.instance.profile(this.ACCOUNT_OWNER, profileIdx);
+      const profileAfter = await this.instance.profile(profileId);
       assert.equal(profileAfter[roleProperty].toNumber(), 0, '0 users after');
     });
 
     it(`removeProfileRole ${roleName}: permissions`, async () => {
-      const idx = 1000;
+      const {
+        profilesSize: profileIdx,
+      } = await this.instance.account(this.ACCOUNT_OWNER);
+      await this.instance.addProfile({from: this.ACCOUNT_OWNER});
+      const profileId = await this.instance.profileIdAt(this.ACCOUNT_OWNER, profileIdx);
       await utils.assertThrow(
         () => this.instance.addProfileRole(
-          this.ACCOUNT_OWNER,
-          idx,
+          profileId,
           accounts[9],
           role
          ),

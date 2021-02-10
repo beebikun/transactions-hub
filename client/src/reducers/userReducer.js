@@ -1,12 +1,6 @@
-import * as TYPES from "../constants/actionTypes";
-import { ROLES } from '../constants/enums';
+import * as TYPES from '../constants/actionTypes';
+import { GOT_CONTRACT_VAR } from '../constants/drizzleActionTypes';
 
-const ROLES_INITIAL_STATE = Object.values(ROLES)
-  .reduce((bucket, role) => ({ ...bucket, [role]: {}}), {});
-const ROLES_TO_PROPERTY = {
-  [ROLES.VOTERS]: 'votersSize',
-  [ROLES.REQUESTER]: 'requstersSize',
-}
 
 const initialState = {
   address: null,
@@ -15,20 +9,8 @@ const initialState = {
   balance: 0,
   profilesSize: 0,
 
-  // Object of form:
-  // {
-  //   idx: {
-  //      requstersSize: num,
-  //      votersSize: num,
-  //      title: str,
-  //      consensusPercentage: num,
-  //      profileIdx: num
-  //      accountAddress: str
-  //    }, ...
-  // }
-  profiles: {},
-  // Object of form: {0: {[profile.idx]: {idx: addr, }, ...}, 1: {...}}
-  userPermissions: { ...ROLES_INITIAL_STATE },
+  profileIds: [],
+  transactionIds: [],
 };
 
 
@@ -36,7 +18,7 @@ function userReducer(state = initialState, action) {
   if (action.accountAddress && action.accountAddress !== state.address) {
     return state;
   }
-  if (action.type === TYPES.ACCOUNT_HASH_RECEIVED) {
+  if (action.type === TYPES.ACTIVE_USER_ACCOUNT_HASH_RECEIVED) {
     return {
       ...state,
       hash: action.payload.hash,
@@ -44,7 +26,7 @@ function userReducer(state = initialState, action) {
     };
   }
 
-  if (action.type === 'GOT_CONTRACT_VAR' &&
+  if (action.type === GOT_CONTRACT_VAR &&
       action.name === 'Hub' &&
       action.variable === 'account' &&
       action.argsHash === state.hash) {
@@ -55,32 +37,18 @@ function userReducer(state = initialState, action) {
     };
   }
 
-  if (action.type === TYPES.PROFILE_RECEIVED) {
-    const profileIdx = action.payload.result.profileIdx;
+  if (action.type === TYPES.PROFILE_IDS_RECEIVED) {
     return {
       ...state,
-      profiles: {
-        ...state.profiles,
-        [profileIdx]: {
-          ...state.profiles[profileIdx],
-          ...action.payload.result
-        },
-      },
+      profileIds: action.payload.result,
     };
   }
-  if (action.type === TYPES.USER_PERMISSION_RECEIVED) {
-    const newState = JSON.parse(JSON.stringify(state));
-    const profileIdx = action.payload.result.profileIdx;
-    const role = action.payload.result.role;
-    const idx = action.payload.result.idx;
-    if (!newState.userPermissions[profileIdx]) {
-      newState.userPermissions[profileIdx] = {};
-    }
-    if (!newState.userPermissions[profileIdx][role]) {
-      newState.userPermissions[profileIdx][role] = {};
-    }
-    newState.userPermissions[profileIdx][role][idx] = action.payload.result.address;
-    return newState;
+
+  if (action.type === TYPES.TRANSACTION_IDS_RECEIVED) {
+    return {
+      ...state,
+      transactionIds: action.payload.result,
+    };
   }
 
   return state;

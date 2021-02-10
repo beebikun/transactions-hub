@@ -16,7 +16,6 @@ contract TransactionStorage {
     ///         with `lastUid - 1` as the last index.
     uint public lastUid;
 
-
     /**
      * @notice Get size of user related transactions.
      * @dev Use `for` loop and `txAt` method to get all user related
@@ -49,22 +48,6 @@ contract TransactionStorage {
         return transactionsByAddress[addr][idx];
     }
 
-    // TODO `transaction` view which is the same as `transactions` but adds
-    // vote_status for msg.sender
-
-    /**
-     * TODO: Replace with `voterSize` in transaction itself
-     * @notice Get size of transaction voters.
-     * @dev Use `for` loop and `txVoterAt` method to get all transaction voters.
-     * @param txId Transaction id
-     * @return uint
-     */
-    function txVotersSize(uint txId)
-        external view
-        returns (uint)
-    {
-        return transactions[txId].voters.length;
-    }
 
     /**
      * @notice Get transaction voter info by voter index.

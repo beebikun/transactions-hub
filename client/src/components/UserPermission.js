@@ -6,20 +6,20 @@ import Button from './Button';
 import AddressAvatar from './AddressAvatar';
 
 
-const mapStateToProps = (state, { idx, profileIdx, role }) => {
-  const address = state.activeUser.userPermissions[profileIdx]?.[role]?.[idx];
+const mapStateToProps = (state, { idx, profileId, role }) => {
+  const address = state.userPermissions[profileId]?.[role]?.[idx];
   return {
     address,
   };
 };
 
-function mapDispatchToProps(dispatch, { accountAddress,  profileIdx, role }) {
+function mapDispatchToProps(dispatch, { profileId, role }) {
   return {
     fetchData: idx => dispatch(
-      ACTIONS.requestUserPermission({ accountAddress, profileIdx, role, idx })
+      ACTIONS.requestUserPermission({ profileId, role, idx })
     ),
     onRemoveUserPermission: user => dispatch(
-      ACTIONS.removeUserPermission({ accountAddress, profileIdx, role, user })
+      ACTIONS.removeUserPermission({ profileId, role, user })
     ),
   };
 }

@@ -21,7 +21,7 @@ const mapStateToProps = state => {
 
 function mapDispatchToProps(dispatch) {
   return {
-    onRefill: (address, value) => dispatch(ACTIONS.requestRefill({ address, value }))
+    onRefill: (accountAddress, value) => dispatch(ACTIONS.refillAccount({ accountAddress, value }))
   };
 };
 

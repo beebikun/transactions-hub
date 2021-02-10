@@ -1,11 +1,17 @@
 import * as TYPES from "../constants/actionTypes";
 
 
-export function accountHashReceived(payload) {
-  return { type: TYPES.ACCOUNT_HASH_RECEIVED, payload };
+export function activeUserAccountHashReceived(payload) {
+  return { type: TYPES.ACTIVE_USER_ACCOUNT_HASH_RECEIVED, payload };
 }
-export function requestProfile(payload) {
-  return { type: TYPES.REQUEST_PROFILE, payload };
+export function fetchProfileIds(payload) {
+  return { type: TYPES.FETCH_PROFILE_IDS, payload };
+}
+export function profileIdsReceived(payload) {
+  return { type: TYPES.PROFILE_IDS_RECEIVED, payload };
+}
+export function fetchProfile(payload) {
+  return { type: TYPES.FETCH_PROFILE, payload };
 }
 export function profileReceived(payload) {
   return { type: TYPES.PROFILE_RECEIVED, payload };
@@ -21,8 +27,11 @@ export function userPermissionReceived(payload) {
   return { type: TYPES.USER_PERMISSION_RECEIVED, payload };
 }
 
-export function requestRefill(payload) {
-  return { type: TYPES.REQUEST_REFILL, payload };
+export function refillAccount(payload) {
+  return { type: TYPES.REFILL_ACCOUNT, payload };
+}
+export function addTransactionRequest(payload) {
+  return { type: TYPES.ADD_TRANSACTION_REQUEST, payload };
 }
 export function addProfile(payload) {
   return { type: TYPES.ADD_PROFILE, payload };
@@ -39,6 +48,17 @@ export function addUserPermission(payload) {
 export function removeUserPermission(payload) {
   return { type: TYPES.REMOVE_USER_PERMISSION, payload };
 }
-export function addRequest(payload) {
-  return { type: TYPES.ADD_REQUEST, payload };
+
+
+export function fetchLastTxIds(payload) {
+  return { type: TYPES.FETCH_LAST_TRANSACTION_IDS, payload };
+}
+export function transactionIdsReceived(payload) {
+  return { type: TYPES.TRANSACTION_IDS_RECEIVED, payload };
+}
+export function fetchTransaction(payload) {
+  return { type: TYPES.FETCH_TRANSACTION, payload };
+}
+export function transactionReceived(payload) {
+  return { type: TYPES.TRANSACTION_RECEIVED, payload };
 }

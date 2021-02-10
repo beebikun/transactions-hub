@@ -1,36 +1,33 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { connect } from "react-redux";
 import * as ACTIONS from '../actions';
-import ProfileFactory from '../components/Profile';
+import Profile from '../components/Profile';
 import BalanceInfo from '../components/BalanceInfo';
 import Button from '../components/Button';
 
 
 const mapStateToProps = state => {
-  const address = state.activeUser.address;
-  const hash = state.activeUser.hash;
-  const account = state.contracts.Hub.account?.[hash]?.value || {};
-  return {
-    address,
-    ...account
-  };
+  return state.activeUser;
 };
 
 function mapDispatchToProps(dispatch) {
   return {
-    addProfile: address => dispatch(ACTIONS.addProfile({ accountAddress: address })),
+    fetchData: (accountAddress, profilesSize) => dispatch(
+      ACTIONS.fetchProfileIds({ accountAddress, profilesSize })
+    ),
+    addProfile: () => dispatch(ACTIONS.addProfile()),
   };
 }
 
 
-function ManageAccount({ address, addProfile, profilesSize = 0 }) {
-  const [Profile, setProfile] = useState(null);
+function ManageAccount({ address, addProfile, fetchData, profilesSize = 0, profileIds }) {
   useEffect(() => {
-    setProfile(ProfileFactory(address));
-  }, [address]);
-  const profiles = new Array(parseInt(profilesSize, 10)).fill()
-      .map((_, profileIdx) =>
-          <Profile className="mb-5" key={profileIdx} idx={profileIdx} />)
+    fetchData(address, profilesSize);
+  }, [address, profilesSize, fetchData]);
+
+  const profiles = (profileIds || [])
+      .map(profileId =>
+          <Profile className="mb-5" key={profileId} id={profileId} />)
        .reverse();
 
   return (
@@ -42,7 +39,7 @@ function ManageAccount({ address, addProfile, profilesSize = 0 }) {
         </h3>
         <Button
           className="ml-auto md:ml-5"
-          onClick={() => addProfile(address)}
+          onClick={addProfile}
         >+</Button>
       </div>
       {profiles}
