@@ -8,6 +8,31 @@ import "./TransactionLib.sol";
  * @dev Keeps methods to access to stored transactions.
  */
 contract TransactionStorage {
+    // Duplicate events from TransactionLib to resemble them in ABI
+    event TransactionRequest(
+        uint uid,
+        bytes32 profileId,
+        address account,
+        address to,
+        address by,
+        uint amount,
+        address[] voters
+    );
+    event TransactionResponse(
+        uint uid,
+        bytes32 profileId,
+        address account,
+        address to,
+        address by,
+        TransactionLib.TransactionStatuses status
+    );
+    event TransactionVote(
+        uint uid,
+        address account,
+        address voter,
+        TransactionLib.VoteStatuses status
+    );
+
     /// @dev it is not unique list, for example, if profile user sends request
     ///  with themselves as `to`, the same address will have txId twice.
     mapping(address => uint[]) internal transactionsByAddress;

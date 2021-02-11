@@ -2,28 +2,42 @@ import * as ACTIONS from '../actions';
 
 
 class HubApi {
-  constructor(drizzle) {
+  init(drizzle) {
     this.SIGNS_MAP = {};
-    this._activeUser = null;
-    this._contractPromise = new Promise((resolve, reject) => {
-      this._contractPromiseResolve = resolve;
-      this._contractPromiseReject = reject;
+
+    let activeUserResolve;
+    // wait for it for `send` operation as it returns `{ contract, activeUser}`
+    this.sendPromise = new Promise((resolve, reject) => {
+      activeUserResolve = resolve;
     });
-    this.store = drizzle.store;
+    // wait for it for `call` operations as it returns `contract`;
+    let contractPromiseResolve;
+    this.getPromise = new Promise((resolve, reject) => {
+      contractPromiseResolve = resolve;
+    });
+
+    this.fetchActiveUser = async (accountAddress) => {
+      this.sendPromise.value = accountAddress;
+      const contract = await this.getPromise;
+      const hash = contract.methods.account.cacheCall(accountAddress);
+      activeUserResolve({ activeUser: accountAddress, contract });
+      return hash;
+    };
+
     const unsubscribe = drizzle.store.subscribe(() => {
       const drizzleState = drizzle.store.getState();
       if (drizzleState.contracts?.Hub?.initialized) {
         const contract = drizzle.contracts.Hub;
         // DEBUG
         window.contract = contract;
-        this._contractPromiseResolve(contract);
-        this.generateFunctionNames(contract);
+        contractPromiseResolve(contract);
+        this._generateFunctionNames(contract);
         unsubscribe();
       }
     });
   }
 
-  generateFunctionNames(contract) {
+  _generateFunctionNames(contract) {
     const methods = [
       'addProfile',
       'editProfile',
@@ -54,26 +68,29 @@ class HubApi {
     });
   }
 
-
-  // Atm we do not need to fetch any user except of active one. But if we will - do not use `cacheCall`
-  // for the rest of users.
-  async fetchActiveUser(accountAddress) {
-    this._activeUser = accountAddress;
-    // DEBUG
-    window.address = accountAddress;
-    const contract = await this._contractPromise;
-    const hash = contract.methods.account.cacheCall(accountAddress);
-    return hash;
+  // is called from middleware, so we cannot wait for sendPromise resolve
+  // because it may be:
+  // 1) user is not loaded yet
+  // 2) transaction even came
+  // 3) we waited for sendPromise resolve and answer with true
+  // 4) transaction from event is fetched
+  // 5) transaction is fetched one more time as a part of user transaction loading
+  // 6) :(
+  isActiveUserInTransactionEvent(event) {
+    const activeUser = this.sendPromise.value;
+    return event.by === activeUser ||
+      event.address === activeUser ||
+      event.to === activeUser ||
+      event.voters.includes(activeUser);
   }
 
   async refillAccount({ accountAddress, value }) {
-    const contract = await this._contractPromise;
-    contract.methods.receiveAmount.cacheSend(accountAddress, {from: this._activeUser, value });
+    const { contract, activeUser } = await this.sendPromise;
+    contract.methods.receiveAmount(accountAddress).cacheSend({from: activeUser, value });
   }
 
-  // GET
   async fetchProfileIds({ accountAddress, profilesSize }) {
-    const contract = await this._contractPromise;
+    const contract = await this.getPromise;
     const result = [];
     for (var idx = 0; idx < profilesSize; idx++) {
       const profileId = await contract.methods.profileIdAt(accountAddress, idx).call();
@@ -83,19 +100,19 @@ class HubApi {
   }
 
   async fetchProfile({ profileId }) {
-    const contract = await this._contractPromise;
+    const contract = await this.getPromise;
     const result = await contract.methods.profile(profileId).call();
     return { ...result, profileId };
   }
 
   async fetchUserPermission({ profileId, role, idx}) {
-    const contract = await this._contractPromise;
+    const contract = await this.getPromise;
     const userAddress = await contract.methods.profileRoleAt(profileId, idx, role).call();
     return { address: userAddress, profileId, role, idx };
   }
 
   async fetchTxIds({ accountAddress, n = 100 }) {
-    const contract = await this._contractPromise;
+    const contract = await this.getPromise;
     let size = await contract.methods.txSize(accountAddress).call();
     size = parseInt(size || 0, 10);
     n = Math.min(size, n);
@@ -108,7 +125,7 @@ class HubApi {
   }
 
   async fetchTransaction({ txId }) {
-    const contract = await this._contractPromise;
+    const contract = await this.getPromise;
     const result = await contract.methods.transactions(txId).call();
     result.voters = {};
     result.txId = txId;
@@ -121,70 +138,49 @@ class HubApi {
 
   // ADD
   async addProfile() {
-    const contract = await this._contractPromise;
-    contract.methods.addProfile().send({from: this._activeUser});
+    const { contract, activeUser } = await this.sendPromise;
+    contract.methods.addProfile().send({from: activeUser});
   }
 
   async addUserPermission({ profileId, user, role }) {
-    const contract = await this._contractPromise;
-    contract.methods.addProfileRole(profileId, user, role).send({from: this._activeUser});
+    const { contract, activeUser } = await this.sendPromise;;
+    contract.methods.addProfileRole(profileId, user, role).send({from: activeUser});
   }
 
   async addRequest({ profileId, amount, to }) {
-    const contract = await this._contractPromise;
-    contract.methods.addRequest(profileId, amount, to).send({from: this._activeUser});
+    const { contract, activeUser } = await this.sendPromise;
+    contract.methods.addRequest(profileId, amount, to).send({from: activeUser});
   }
 
   // EDIT
   async editProfile({ profileId, title, consensusPercentage }) {
-    const contract = await this._contractPromise;
+    const { contract, activeUser } = await this.sendPromise;
     contract.methods.editProfile(
       profileId,
       contract.web3.utils.toHex(title), consensusPercentage,
-    ).send({from: this._activeUser});
+    ).send({from: activeUser});
+  }
+
+  async sendVote({ txId, status }) {
+    const { contract, activeUser } = await this.sendPromise;
+    contract.methods.vote(txId, status).send({from: activeUser});
   }
 
   // DELETE
   async removeProfile({ profileId }) {
-    const contract = await this._contractPromise;
-    contract.methods.removeProfile(profileId).send({from: this._activeUser});
+    const { contract, activeUser } = await this.sendPromise;
+    contract.methods.removeProfile(profileId).send({from: activeUser});
   }
 
   async removeUserPermission({ profileId, user, role }) {
-    const contract = await this._contractPromise;
+    const { contract, activeUser } = await this.sendPromise;
     contract.methods.removeProfileRole(
       profileId, user, role,
-    ).send({from: this._activeUser});
+    ).send({from: activeUser});
   }
 
 }
 
-let HubApiPrivate = null;
-const exposedMethods = [
-  'fetchActiveUser',
-  'fetchProfileIds', 'fetchProfile',
-  'fetchUserPermission',
-  'refillAccount',
-  'addRequest',
-  'addProfile', 'editProfile', 'removeProfile',
-  'addUserPermission', 'removeUserPermission',
-  'fetchTxIds', 'fetchTransaction',
-];
-
-const HubApiSingleton = {
-
-  init(drizzle) {
-    if (HubApiPrivate) {
-      return;
-    }
-    HubApiPrivate = new HubApi(drizzle);
-    exposedMethods.forEach(method => {
-      HubApiSingleton[method] = (...args) => HubApiPrivate[method](...args);
-    });
-    this.SIGNS_MAP = HubApiPrivate.SIGNS_MAP;
-  },
-
-};
-
+const HubApiSingleton = new HubApi();
 
 export default HubApiSingleton;

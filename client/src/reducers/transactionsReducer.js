@@ -18,19 +18,18 @@ import * as TYPES from "../constants/actionTypes";
 //    }, ...
 // }
 const initialState = {
+  asObj: {},
+  asArr: [],
 };
 
 
 function transactionsReducer(state = initialState, action) {
   if (action.type === TYPES.TRANSACTION_RECEIVED) {
     const txId = action.payload.result.txId;
-    return {
-      ...state,
-      [txId]: {
-        ...state[txId],
-        ...action.payload.result
-      },
-    };
+    const newState = JSON.parse(JSON.stringify(state));
+    newState.asObj[txId] = action.payload.result;
+    newState.asArr = Object.values(newState.asObj);
+    return newState;
   }
 
   return state;

@@ -16057,12 +16057,12 @@
         }
       },
       "links": {},
-      "address": "0x04e8Bc6D64AD89DC5b7f066669cB50fa5F01dCD8",
-      "transactionHash": "0xf59d4edff67a345b3ad28b3d7c94180318271aac3030edbf844d36771e413c32"
+      "address": "0xcd5690ccAEC03824c2d065986c8DdD0233c6c6Ef",
+      "transactionHash": "0xb50f1f92ab3d0a29c908e9a177cf500aea8f28f2aa2b4696e98b910ae9192ee4"
     }
   },
   "schemaVersion": "3.3.3",
-  "updatedAt": "2021-02-10T20:12:23.095Z",
+  "updatedAt": "2021-02-10T22:24:18.051Z",
   "networkType": "ethereum",
   "devdoc": {
     "details": "Keeps transactions request related structs and methods",

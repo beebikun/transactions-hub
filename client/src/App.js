@@ -1,13 +1,15 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { connect } from "react-redux";
+import * as ACTIONS from './actions';
 import Header from "./components/Header";
 import ManageAccount from "./pages/ManageAccount";
 import AddTransaction from "./pages/AddTransaction";
+import TransactionsList from "./pages/TransactionsList";
+import TransactionDetail from "./pages/TransactionDetail";
 import {
   BrowserRouter as Router,
   Switch,
   Route,
-  Link
 } from "react-router-dom";
 
 
@@ -15,11 +17,23 @@ const mapStateToProps = state => {
   return {
     isLoaded: state.drizzleStatus.initialized,
     isTestNetwork: state.web3.networkId === 5777,
+    accountAddress: state.activeUser.address,
   };
 };
 
+function mapDispatchToProps(dispatch) {
+  return {
+    fetchtransactions: (accountAddress) => dispatch(ACTIONS.fetchTransactions({ accountAddress })),
+  };
+}
 
-const App = ({ isLoaded, isTestNetwork }) => {
+const App = ({ isLoaded, isTestNetwork, accountAddress, fetchtransactions }) => {
+  useEffect(() => {
+    if (isLoaded && isTestNetwork && accountAddress) {
+      fetchtransactions(accountAddress);
+    }
+  }, [accountAddress, isLoaded, isTestNetwork, fetchtransactions]);
+
   if (!isLoaded) return (
     <div className="bg-gray-100 h-screen flex justify-center items-center">
 
@@ -52,22 +66,18 @@ const App = ({ isLoaded, isTestNetwork }) => {
     <span>Change network!</span>
   );
 
+
   return (
     <Router>
       <div className="bg-gray-100 font-mono min-h-screen">
-        {/* <Header/> */}
-        <div className="container mx-auto">
+        <Header/>
+        <div className="container max-w-screen-lg mx-auto">
           <Switch>
-            <Route path="/account">
-              <ManageAccount />
-            </Route>
-            <Route path="/add">
-              <AddTransaction />
-            </Route>
-            <Route path="/">
-              <div className="container mx-auto bg-white">
-                Content
-              </div>
+            <Route path="/account" component={ManageAccount}/>
+            <Route path="/add" component={AddTransaction}/>
+            <Route path='/transactions/:txId' component={TransactionDetail}/>
+            <Route path='/'>
+              <TransactionsList/>
             </Route>
           </Switch>
         </div>
@@ -79,4 +89,4 @@ const App = ({ isLoaded, isTestNetwork }) => {
 
 
 
-export default connect(mapStateToProps)(App);
+export default connect(mapStateToProps, mapDispatchToProps)(App);

@@ -48,13 +48,11 @@ export function addUserPermission(payload) {
 export function removeUserPermission(payload) {
   return { type: TYPES.REMOVE_USER_PERMISSION, payload };
 }
-
-
-export function fetchLastTxIds(payload) {
-  return { type: TYPES.FETCH_LAST_TRANSACTION_IDS, payload };
+export function sendVote(payload) {
+  return { type: TYPES.SEND_VOTE, payload };
 }
-export function transactionIdsReceived(payload) {
-  return { type: TYPES.TRANSACTION_IDS_RECEIVED, payload };
+export function fetchTransactions(payload) {
+  return { type: TYPES.FETCH_TRANSACTIONS, payload };
 }
 export function fetchTransaction(payload) {
   return { type: TYPES.FETCH_TRANSACTION, payload };

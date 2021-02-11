@@ -49,53 +49,54 @@ function Profile({
   }, [profile.consensusPercentage]);
 
   return (
-    <div className={className + ' py-6 px-4 bg-white shadow lg:flex overflow-auto'}>
+    <div className={className + ' py-6 px-4 bg-white shadow overflow-auto'}>
       <h3 className="mb-6 text-sm md:text-lg">{id}</h3>
-      <div className="flex flex-wrap lg:block">
-        <div className="mr-5 mb-5">
-          <label
-            className="block mb-2 font-semibold text-sm"
-            htmlFor={'profileTitle' + id}>
-            PROFILE TITLE</label>
-          <Input
-            value={title}
-            onChange={setTitle}
-            name={'profileTitle' + id}
-          />
+      <div className="lg:flex ">
+        <div className="flex flex-wrap lg:block">
+          <div className="mr-5 mb-5">
+            <label
+              className="block mb-2 font-semibold text-sm"
+              htmlFor={'profileTitle' + id}>
+              PROFILE TITLE</label>
+            <Input
+              value={title}
+              onChange={setTitle}
+              name={'profileTitle' + id}
+            />
+          </div>
+          <div className="mr-5 mb-5">
+            <label
+              className="block mb-2 font-semibold text-sm"
+              htmlFor={'profilePercentage' + id}>
+              CONSENSUS PERCENTAGE</label>
+            <Input
+              value={percentage}
+              onChange={setPercentage}
+              placeholder="0 - 100%"
+              name={'profilePercentage' + id}
+              type="number"
+            />
+          </div>
+          <Button
+            className="self-center mt-2 lg:mt-0"
+            onClick={() => onProfileEdit(id, { title, consensusPercentage: percentage })}
+            >Save</Button>
         </div>
-        <div className="mr-5 mb-5">
-          <label
-            className="block mb-2 font-semibold text-sm"
-            htmlFor={'profilePercentage' + id}>
-            CONSENSUS PERCENTAGE</label>
-          <Input
-            value={percentage}
-            onChange={setPercentage}
-            placeholder="0 - 100%"
-            name={'profilePercentage' + id}
-            type="number"
+        <div className="md:flex">
+          <UserPermissionList
+            size={requstersSize} title="Requesters" role={ROLES.REQUESTER}
+            className="md:mr-5 mt-3  lg:mt-0"
           />
+          <UserPermissionList
+            className="mt-3 lg:mt-0"
+            size={votersSize}
+            title="Voters"
+            role={ROLES.VOTER}/>
         </div>
-        <Button
-          className="self-center mt-2 lg:mt-0"
-          onClick={() => onProfileEdit(id, { title, consensusPercentage: percentage })}
-          >Save</Button>
-      </div>
-      <div className="md:flex">
-        <UserPermissionList
-          size={requstersSize} title="Requesters" role={ROLES.REQUESTER}
-          className="md:mr-5 mt-3  lg:mt-0"
-        />
-        <UserPermissionList
-          className="mt-3 lg:mt-0"
-          size={votersSize}
-          title="Voters"
-          role={ROLES.VOTER}/>
       </div>
 
-      {/* POST MVP */}
       <Button
-        className="self-center mt-5 lg:ml-auto lg:self-end"
+        className="mt-5 lg:ml-auto lg:block"
         onClick={() => onProfileRemove(id)}
         >Remove Profile</Button>
     </div>

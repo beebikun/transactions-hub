@@ -1,5 +1,5 @@
+import { EventActions } from "@drizzle/store";
 import * as TYPES from '../constants/actionTypes';
-import { GOT_CONTRACT_VAR } from '../constants/drizzleActionTypes';
 
 
 const initialState = {
@@ -26,7 +26,7 @@ function userReducer(state = initialState, action) {
     };
   }
 
-  if (action.type === GOT_CONTRACT_VAR &&
+  if (action.type === EventActions.GOT_CONTRACT_VAR &&
       action.name === 'Hub' &&
       action.variable === 'account' &&
       action.argsHash === state.hash) {
@@ -44,12 +44,12 @@ function userReducer(state = initialState, action) {
     };
   }
 
-  if (action.type === TYPES.TRANSACTION_IDS_RECEIVED) {
-    return {
-      ...state,
-      transactionIds: action.payload.result,
-    };
-  }
+  // if (action.type === TYPES.TRANSACTION_IDS_RECEIVED) {
+  //   return {
+  //     ...state,
+  //     transactionIds: action.payload.result,
+  //   };
+  // }
 
   return state;
 }

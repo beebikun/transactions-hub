@@ -1,9 +1,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { Provider } from "react-redux";
-import { Drizzle, generateStore } from "@drizzle/store";
-// import { DrizzleContext } from "@drizzle/react-plugin";
-import { loggerMiddleware } from './middleware';
+import { Drizzle, generateStore, EventActions } from "@drizzle/store";
+import { transactionEventsMiddleWare } from './middleware';
 import { userReducer, profilesReducer, userPermissionsReducer, transactionsReducer } from './reducers';
 import sagas from './sagas';
 import './index.css';
@@ -24,7 +23,7 @@ const drizzleStore = generateStore({
   disableReduxDevTools: false,
   appSagas: sagas,
   appMiddlewares: [
-    // loggerMiddleware,
+    transactionEventsMiddleWare,
   ],
 });
 const drizzle = new Drizzle(drizzleOptions, drizzleStore);
@@ -35,7 +34,7 @@ HubApi.init(drizzle);
 window.drizzle = drizzle;
 window.store = drizzle.store;
 window.API = HubApi;
-
+window.EventActions = EventActions;
 
 ReactDOM.render(
   <Provider store={drizzle.store}>

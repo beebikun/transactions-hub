@@ -31,7 +31,7 @@ function ManageAccount({ address, addProfile, fetchData, profilesSize = 0, profi
        .reverse();
 
   return (
-    <div className="pt-3">
+    <div>
       <BalanceInfo/>
       <div className="mb-3 mt-5 px-1 flex items-center">
         <h3 className="text-xl text-gray-900">

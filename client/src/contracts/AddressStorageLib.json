@@ -7318,12 +7318,12 @@
     "5777": {
       "events": {},
       "links": {},
-      "address": "0x75c41Fb5943d86583827bF6262ad4E1C2eA98A3F",
-      "transactionHash": "0x16b54fd6140678e82fd347d0f9befa0244224379388084dac6cbc86ffdaf42cb"
+      "address": "0x4B5Cf0709C16C8ed952b1380266F74C7c0e66375",
+      "transactionHash": "0xea6f76c2bc7e345085d3bd0e555b3fcb79fb080d71be02ebed65e5eb22321d2e"
     }
   },
   "schemaVersion": "3.3.3",
-  "updatedAt": "2021-02-10T20:12:23.069Z",
+  "updatedAt": "2021-02-10T22:24:17.793Z",
   "networkType": "ethereum",
   "devdoc": {
     "details": "Allows to add/access/delete addresses.",
