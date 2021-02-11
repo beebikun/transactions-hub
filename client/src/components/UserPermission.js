@@ -31,7 +31,7 @@ function UserPermission({
 }) {
   useEffect(() => {
     fetchData(idx);
-  }, []);
+  }, [fetchData, idx]);
   return (
     <div className={className + " flex items-center"}>
       <AddressAvatar addr={address} className="mr-2"/>

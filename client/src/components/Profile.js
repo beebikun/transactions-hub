@@ -34,7 +34,7 @@ function Profile({
   // Fetch profile data
   useEffect(() => {
     fetchData(id);
-  }, []);
+  }, [fetchData, id]);
   const UserPermissionList = useMemo(
     () => UserPermissionListFactory(id),
     [id]

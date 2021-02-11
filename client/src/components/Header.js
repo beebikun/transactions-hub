@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   NavLink
 } from "react-router-dom";
@@ -14,7 +14,7 @@ function HeaderLink({ className, to, children }) {
 }
 
 
-function Header({  }) {
+function Header() {
   return (
     <div className="px-3 bg-gray-400 mb-6 flex">
       <HeaderLink to="/">Transactions</HeaderLink>

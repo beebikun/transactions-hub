@@ -1,10 +1,7 @@
-import React, { useState, useMemo } from 'react';
-import {
-  useHistory,
-} from "react-router-dom";
+import React, { useState, useEffect } from 'react';
 import { connect } from "react-redux";
-import { TransactionStatuses } from '../constants/enums';
-import TxShortInfo from '../components/TxShortInfo';
+import TransactionsFilters from '../components/TransactionsFilters';
+import TransactionItem from '../components/TransactionItem';
 
 
 const mapStateToProps = state => {
@@ -16,41 +13,54 @@ const mapStateToProps = state => {
 
 
 
-function TransactionsList({ accountAddress, transactionItems, fetchData }) {
-  const history = useHistory();
-  const statusToBg = {
-    [TransactionStatuses.PENDING]: '',
-    [TransactionStatuses.APPROVED]: 'bg-green-100',
-    [TransactionStatuses.REJECTED]: 'bg-red-200',
-  };
-  const transactions = [];
-  for (var i = transactionItems.length - 1; i >= 0; i--) {
-    const tx = transactionItems[i];
-    transactions.push(<div
-      key={tx.txId}
-      onClick={() => history.push(`/transactions/${tx.txId}`)}
-      className={'cursor-pointer flex hover:bg-gray-100 mb-3 bg-white shadow py-6 px-4 ' + statusToBg[tx.status]}
-    >
-      <div>
-        <TxShortInfo tx={tx} accountAddress={accountAddress} />
-        <div className="mt-3">
-          I am: {
-            tx.voters[accountAddress] ? 'Voter' :
-            tx.by === accountAddress ? 'Requester' :
-            tx.to === accountAddress ? 'Recipient' :
-            tx.accountAddress === accountAddress ? 'Holder' : '¯\_(ツ)_/¯'
-          }
-        </div>
-      </div>
-      <div className="text-2xl ml-auto">-></div>
-    </div>);
-  }
+function TransactionsList({ accountAddress, transactionItems }) {
+  const [filters, setFilters] = useState({});
+  const [transactions, setTransactions] = useState([]);
+
+  useEffect(() => {
+    const txs = [];
+    console.log(filters)
+    for (var i = transactionItems.length - 1; i >= 0; i--) {
+      const tx = transactionItems[i];
+      if (filters.profileId && tx.profileId !== filters.profileId) {
+        continue
+      }
+      if (filters.voter && !tx.voters[filters.voter]) {
+        continue
+      }
+      if (filters.to && tx.to !== filters.to) {
+        continue
+      }
+      if (filters.account && tx.account !== filters.account) {
+        continue
+      }
+      if (filters.by && tx.by !== filters.by) {
+        continue
+      }
+      if (filters.txStatus !== null && tx.status !== filters.txStatus) {
+        continue
+      }
+      if (filters.myVoteStatus !== null &&
+          (!tx.voters[accountAddress] || tx.voters[accountAddress].status !== filters.myVoteStatus)) {
+        continue
+      }
+      txs.push(<TransactionItem key={tx.txId} txId={tx.txId} accountAddress={accountAddress}/>);
+    }
+    setTransactions(txs);
+  }, [transactionItems.length, filters, accountAddress]);
+
 
   return (
     <div>
       <h3 className="mb-3 px-1 text-xl text-gray-900">
-        Transactions ({transactionItems.length})
+        Transactions ({transactionItems.length}/{transactions.length})
       </h3>
+
+      <TransactionsFilters
+        transactionItems={transactionItems}
+        accountAddress={accountAddress}
+        onChange={setFilters}
+      />
 
       {transactions}
     </div>

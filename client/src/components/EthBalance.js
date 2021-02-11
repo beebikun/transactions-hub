@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 
 const ETH = 10 ** 18;
 const MIN_ETH = 10 ** 14;

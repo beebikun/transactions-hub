@@ -1,4 +1,4 @@
-import { call, put, spawn, takeEvery } from 'redux-saga/effects';
+import { call, put, takeEvery } from 'redux-saga/effects';
 import { ACCOUNTS_FETCHED, BLOCK_PROCESSING } from "../constants/drizzleActionTypes";
 import * as TYPES from "../constants/actionTypes";
 import * as ACTIONS from '../actions';

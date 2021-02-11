@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useMemo } from 'react';
-import { TransactionStatuses, VoteStatuses } from '../constants/enums';
+import React from 'react';
+import { VoteStatuses } from '../constants/enums';
 
 
 function CircleStatus({ status, txStatus }) {

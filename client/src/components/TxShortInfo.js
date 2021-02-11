@@ -2,6 +2,8 @@ import React from 'react';
 import CircleStatus from '../components/CircleStatus';
 import { TransactionStatuses, VoteStatuses } from '../constants/enums';
 
+const UNKNOWN_STATUS = '¯\\_(ツ)_/¯';
+
 
 function TxShortInfo({ tx, accountAddress, className }) {
   const txStatus = parseInt(tx.status, 10);
@@ -13,7 +15,7 @@ function TxShortInfo({ tx, accountAddress, className }) {
           [{
             txStatus === TransactionStatuses.PENDING ? 'PENDING' :
             txStatus === TransactionStatuses.APPROVED ? 'APPROVED' :
-            txStatus === TransactionStatuses.REJECTED ? 'REJECTED' : '¯\_(ツ)_/¯'
+            txStatus === TransactionStatuses.REJECTED ? 'REJECTED' : UNKNOWN_STATUS
           }]
         </div>
         Transaction {tx.txId}
