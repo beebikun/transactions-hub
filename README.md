@@ -7,6 +7,7 @@ contract concept.
 
 Uses libs:
 - [AddressStorageLib](./contracts/AddressStorageLib.sol);
+- [ProfileStorageLib](./contracts/ProfileStorageLib.sol);
 - [TransactionLib](./contracts/TransactionLib.sol);
 
 # Setup
@@ -46,55 +47,88 @@ npm run migrate
 To make playing with test network more fun you may want to prepare some data.
 
 Considering you have imported the first account from Ganache to MetaMask, run
-`npm run console` and execute:
+`npm run console` and execute script.
 
+Tips:
 ```
 // Roles: 0 - can send request; 1 - can vote;
 // Votes: 2 - approve; 3 - reject;
+```
 
+## Profile with requester role
+```
 instance = await Hub.deployed();
 activeUser = accounts[0];
 await instance.receiveAmount(address, {value: 100});
 
-// Profile where activeUser has requester (0) permissions (can send, cannot vote);
+account = await instance.account(activeUser);
+p1Index = account.profilesSize;
 await instance.addProfile({from: activeUser});
-p1 = await instance.profileIdAt(activeUser, 0);
+p1 = await instance.profileIdAt(activeUser, p1Index);
+
 // p1 has 25% percent of consensus percentage - 1 vote of 4 is enough to consensus
 await instance.editProfile(p1, '0x41', 25, {from: activeUser});
+
 await instance.addProfileRole(p1, activeUser, 0, {from: activeUser});
 await instance.addProfileRole(p1, accounts[2], 1, {from: activeUser});
 await instance.addProfileRole(p1, accounts[3], 1, {from: activeUser});
 await instance.addProfileRole(p1, accounts[4], 1, {from: activeUser});
 await instance.addProfileRole(p1, accounts[5], 1, {from: activeUser});
+
 // Now you can add transaction request from app to p1
 // Or with console: create a request to accounts[5] with amount 1
 txId1 = await instance.lastUid();
 instance.addRequest(p1, 1, accounts[5], {from: activeUser});
+
 // Now you can vote from accounts: accounts[2], accounts[3], accounts[4], accounts[5]
 instance.vote(txId1, 2, {from: accounts[2]});
+```
 
-// Profile where activeUser has voter (1) permissions (can vote, cannot send)
+## Profile with voter role
+```
+instance = await Hub.deployed();
+activeUser = accounts[0];
+await instance.receiveAmount(address, {value: 100});
+
+account = await instance.account(activeUser);
+p2Index = account.profilesSize;
 await instance.addProfile({from: activeUser});
-p2 = await instance.profileIdAt(activeUser, 1);
+p2 = await instance.profileIdAt(activeUser, p2Index);
+
 await instance.editProfile(p2, '0x42', 50, {from: activeUser});
+
 await instance.addProfileRole(p2, accounts[2], 0, {from: activeUser});
 await instance.addProfileRole(p2, activeUser, 1, {from: activeUser});
 await instance.addProfileRole(p1, accounts[3], 1, {from: activeUser});
+
 // You can create a request for p2 with console
 txId2 = await instance.lastUid();
 instance.addRequest(p2, 4, accounts[5], {from: accounts[2]});
+
 // You can vote with app or with console
 instance.vote(txId2, 3, {from: activeUser});
+```
 
-// Profile with both - requester (0) and voter (2) permissions
+## Profile with both - voter and requester roles
+```
+instance = await Hub.deployed();
+activeUser = accounts[0];
+await instance.receiveAmount(address, {value: 100});
+
+account = await instance.account(activeUser);
+p3Index = account.profilesSize;
 await instance.addProfile({from: activeUser});
-p3 = await instance.profileIdAt(activeUser, 1);
+p3 = await instance.profileIdAt(activeUser, p3Index);
+
 await instance.editProfile(p3, '0x43', 100, {from: activeUser});
+
 await instance.addProfileRole(p3, activeUser, 0, {from: activeUser});
 await instance.addProfileRole(p3, activeUser, 1, {from: activeUser});
+
 // You can both - create request and vote - with app or with console
 txId3 = await instance.lastUid();
 instance.addRequest(p2, 5, activeUser, {from: activeUser});
+
 // txId3 is made with `activeUser` as to, so after transaction approval
 // balance of `activeUser` is increased.
 instance.vote(txId2, 2, {from: activeUser});

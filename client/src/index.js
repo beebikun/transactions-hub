@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { Provider } from "react-redux";
-import { Drizzle, generateStore, EventActions } from "@drizzle/store";
+import { Drizzle, generateStore } from "@drizzle/store";
 import { transactionEventsMiddleWare } from './middleware';
 import { userReducer, profilesReducer, userPermissionsReducer, transactionsReducer } from './reducers';
 import sagas from './sagas';
