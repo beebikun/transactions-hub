@@ -30,12 +30,6 @@ const drizzle = new Drizzle(drizzleOptions, drizzleStore);
 HubApi.init(drizzle);
 
 
-// DEBUG
-window.drizzle = drizzle;
-window.store = drizzle.store;
-window.API = HubApi;
-window.EventActions = EventActions;
-
 ReactDOM.render(
   <Provider store={drizzle.store}>
     <App/>

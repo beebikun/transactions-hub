@@ -254,7 +254,7 @@ contract AccountStorage {
 
     /**
      * @dev Throws if tx.origin isn't profile owner
-     * @param profileId
+     * @param profileId Profile to check permissions
      */
     function requireProfileOwner(bytes32 profileId) internal view {
         require(

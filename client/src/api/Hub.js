@@ -28,8 +28,6 @@ class HubApi {
       const drizzleState = drizzle.store.getState();
       if (drizzleState.contracts?.Hub?.initialized) {
         const contract = drizzle.contracts.Hub;
-        // DEBUG
-        window.contract = contract;
         contractPromiseResolve(contract);
         this._generateFunctionNames(contract);
         unsubscribe();
