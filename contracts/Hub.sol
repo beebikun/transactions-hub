@@ -23,7 +23,7 @@ import "./TransactionLib.sol";
  *     approvale required to transaction approval.
  * @dev Logic of transaction request:
  *      - Transaction is made accoding to profile with `addRequest` method;
- *      - Only user with `requester` role in profile;
+ *      - Only user with `requester` role in profile can call `addRequest`;
  *      - When transaction request is created:
  *          - account balance is reduced by `amount`;
  *          - voters are copied from profile to transaction;
@@ -121,7 +121,7 @@ contract Hub is AccountStorage, TransactionStorage {
     /**
      * @notice Vote for transaction with status.
      * @dev Throws and events: see `TransactionLib.add`;
-     * @param txId Transacyion id
+     * @param txId Transaction id
      * @param status `TransactionLib.VoteStatuses` enum
      */
     function vote(uint txId, TransactionLib.VoteStatuses status) external {

@@ -37,7 +37,7 @@ contract AccountStorage {
 
     /**
      * @dev Throws if caller doesn't have `requester` permissions for profile
-     *      by `profileId` doesn't exists in `accountAddress` address.
+     *      `profileId`.
      */
     modifier requireProfileRequester(bytes32 profileId) {
         require(
@@ -55,7 +55,7 @@ contract AccountStorage {
     /**
      * @notice Get account balance and number of profiles.
      * @dev To get all account profiles, use `for` loop for `profilesSize`
-     *      with `profile` method.
+     *      with `profileIdAt` method.
      * @param accountAddress Address of account
      * @return balance
      * @return profilesSize
@@ -72,15 +72,15 @@ contract AccountStorage {
     /**
      * @notice Get profile details.
      * @dev Use `profilesSize` from `account` method response to get maximum
-     *      profile index.
+     *      profile index. Use `profileIdAt` to get profile id at index.
      *      To get all profile requesters/voters, use `for` loop for
      *      `requstersSize`/`votersSize` with `profileRoleAt`.
      * @param profileId Profile id
-     * @return accountAddress
-     * @return title
-     * @return consensusPercentage
-     * @return requstersSize
-     * @return votersSize
+     * @return accountAddress Account to which profile belongs to
+     * @return title Profile title
+     * @return consensusPercentage Percentage of voters required for consensus
+     * @return requstersSize Total requesters size for profile
+     * @return votersSize Total voters size for profile
      */
     function profile(bytes32 profileId) external view
         returns (
@@ -100,6 +100,11 @@ contract AccountStorage {
         );
     }
 
+    /**
+     * @notice Get profile id by its index in `account.profiles`.
+     * @param profileIdx Profile index
+     * @return profileId
+     */
     function profileIdAt(address accountAddress, uint profileIdx)
         external view
         returns (bytes32)
@@ -159,8 +164,7 @@ contract AccountStorage {
     /**
      * @notice Edit profile details.
      * @dev Throws if:
-     *      - Caller isn't account owner;
-     *      - Profile at index doesn't exist;
+     *      - Caller isn't profile owner;
      * @param profileId Profile id
      * @param title Title in bytes32
      * @param consensusPercentage Consensus percentage 1-100
@@ -178,13 +182,12 @@ contract AccountStorage {
     }
 
     /**
-     * @notice Grant `role` permission for `user` in profile.
+     * @notice Grant permission for address in profile.
      * @dev Throws if:
-     *      - Caller isn't account owner;
-     *      - Profile at index doesn't exist;
+     *      - Caller isn't profile owner;
      * @param profileId Profile id
      * @param user User address
-     * @param role `Roles` enum
+     * @param role `Roles` enum - role to grant
      */
     function addProfileRole(
         bytes32 profileId,
@@ -205,10 +208,9 @@ contract AccountStorage {
     // *** Delete Methods ***
 
     /**
-     * @notice Removes profiles by index.
+     * @notice Removes profile.
      * @dev Throws if:
-     *      - Caller isn't account owner;
-     *      - Profile at index doesn't exist;
+     *      - Caller isn't profile owner;
      * @param profileId Profile id
      */
     function removeProfile(bytes32 profileId)
@@ -225,13 +227,12 @@ contract AccountStorage {
     }
 
     /**
-     * @notice Revoke `role` permission for `user` in profile.
+     * @notice Revoke permission for address in profile.
      * @dev Throws if:
-     *      - Caller isn't account owner;
-     *      - Profile at index doesn't exist;
+     *      - Caller isn't profile owner;
      * @param profileId Profile id
      * @param user User address
-     * @param role `Roles` enum
+     * @param role `Roles` enum - role to rewoke
      */
     function removeProfileRole(
         bytes32 profileId,
@@ -252,8 +253,8 @@ contract AccountStorage {
     // *** Throw functions ***
 
     /**
-     * @dev Throws if profile by `profileId` doesn't exists in
-     *      `accountAddress` address.
+     * @dev Throws if tx.origin isn't profile owner
+     * @param profileId
      */
     function requireProfileOwner(bytes32 profileId) internal view {
         require(

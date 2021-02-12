@@ -33,7 +33,7 @@ contract TransactionStorage {
         TransactionLib.VoteStatuses status
     );
 
-    /// @dev it is not unique list, for example, if profile user sends request
+    /// @dev not unique list, for example, if profile user sends request
     ///  with themselves as `to`, the same address will have txId twice.
     mapping(address => uint[]) internal transactionsByAddress;
     mapping(uint => TransactionLib.Transaction) public transactions;
@@ -72,7 +72,6 @@ contract TransactionStorage {
         );
         return transactionsByAddress[addr][idx];
     }
-
 
     /**
      * @notice Get transaction voter info by voter index.

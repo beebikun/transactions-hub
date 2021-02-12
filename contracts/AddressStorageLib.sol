@@ -3,12 +3,13 @@ pragma solidity >=0.6.0 <0.9.0;
 
 /**
  * @title AddressStorageLib
- * @dev Allows to add/access/delete addresses.
+ * @dev Allows to add/access/remove addresses.
  */
 library AddressStorageLib {
 
     struct Permissions {
         address[] keys;
+        // address => index of address in `keys`
         mapping (address => uint) values;
     }
 
@@ -32,7 +33,7 @@ library AddressStorageLib {
     /**
      * @notice Adds element to storage
      * @param self Permissions
-     * @param user Element (=address)
+     * @param user Address to add
      */
     function add(Permissions storage self, address user) external {
         if (!has(self, user)) {
@@ -44,7 +45,7 @@ library AddressStorageLib {
     /**
      * @notice Removes element from storage
      * @param self Permissions
-     * @param user Element (=address)
+     * @param user Address to remove
      */
     function remove(Permissions storage self, address user) external {
         if (!has(self, user)) {
@@ -81,7 +82,7 @@ library AddressStorageLib {
     /**
      * @notice Checks if element exists in storage
      * @param self Permissions
-     * @param user Element (=address)
+     * @param user Address to check
      * @return bool
      */
     function has(Permissions storage self, address user)
